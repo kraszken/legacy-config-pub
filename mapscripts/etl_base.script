@@ -1,0 +1,1022 @@
+// GLOBAL ACCUMS
+// =============
+//
+// GLOBALACCUM 1:	North Radar 		(0-destroyed; 	1-active)
+// GLOBALACCUM 2:	South Radar 		(0-destroyed; 	1-active)
+// GLOBALACCUM 3:	Documents 			(0-delivered; 	1-undelivered)
+// GLOBALACCUM 4:	Upper Offices Flag	(0-disabled; 	1-enabled)
+
+game_manager
+{
+	spawn
+	{
+		// Game rules
+		wm_axis_respawntime 30
+		wm_allied_respawntime 20
+		wm_number_of_objectives 5
+		wm_set_round_timelimit	15
+		wm_set_defending_team	0
+		wm_setwinner 0
+		
+		wait 450
+		
+		// deactivate Documents
+		setstate documents_toi invisible
+		setstate documents_cmm invisible
+		setstate transmitter_crates invisible
+		setstate transmitter_toi invisible
+		setstate transmitter_cmm invisible
+		setstate transmitter_obj invisible
+		setstate documents_table invisible
+		setstate documents_table_model invisible
+		
+		// deactivate North Radar
+		setstate north_radar_remains invisible
+		setstate north_radar invisible
+		setstate north_radar_toi invisible
+		
+		// deactivate South Radar
+		setstate south_radar_remains invisible
+		setstate south_radar invisible
+		setstate south_radar_toi invisible
+		
+		// initial setstates
+		setstate upper_tunnel_ladder invisible
+		setstate bridge_door_hint invisible
+		trigger bridge_door_gauge_in disable
+		trigger bridge_door_gauge_out disable
+		setstate bridge_cover invisible
+		trigger gate_gauge_in enable
+		trigger gate_gauge_out enable
+		setstate gate_explosive invisible
+		setstate gate_explosive_toi invisible
+		setstate cp_corridor_block invisible
+		setstate upper_offices_wobj invisible
+		setstate upper_offices_wobj_cam invisible
+		
+		// allied cabinets
+		setstate allied_ammo_trigger invisible
+		setstate allied_ammo_model invisible
+		setstate allied_health_trigger invisible
+		setstate allied_health_model invisible
+		setstate allied_cabinet_toi invisible
+		setstate allied_cabinet_marker invisible
+		
+		// axis cabinets
+		setstate axis_ammo_trigger invisible
+		setstate axis_ammo_model invisible
+		setstate axis_health_trigger invisible
+		setstate axis_health_model invisible
+		setstate axis_cabinet_toi invisible
+		setstate axis_cabinet_marker invisible
+		
+		remapshader textures/etl_base/bridge_door_lights_neutral	textures/etl_lights/lights_red
+		remapshader textures/etl_base/gate_lights_neutral			textures/etl_lights/lights_green
+		remapshader models/mapobjects/trees_sd/winterbranch01		models/mapobjects/etl_plants/tempbranch03
+		remapshader models/mapobjects/trees_sd/wintertrunk01		models/mapobjects/etl_plants/temptrunk03
+		remapshaderflush
+
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "axis_hq_compost_construct"
+		wm_addteamvoiceannounce 1 "allies_hq_compost_construct"
+		
+		wm_teamvoiceannounce 0 "axis_hq_compost_construct"
+		wm_teamvoiceannounce 1 "allies_hq_compost_construct"
+		// *---------------------------------------------------------------------------------*		
+		
+		//====OPTIONAL SETTINGS==============================================================
+		// Toggle the line of the respective setting you want to change by (un-)commenting.
+		wait 1000
+		//
+		trigger upper_tunnel enable_route 			// Enable upper route at main tunnel towards North Radar
+		trigger bridge_door enable_door				// Enable Brewdog-style bridge cover and sliding door near North Radar; NOT COMPATIBLE WITH RADAR OBJECTIVE!
+		setstate gate_sidepath invisible				// Enable side passage next to tunnel gate
+		setstate documents_ladder invisible				// Add ladder from Axis spawn to documents bunker
+		setstate south_radar_corridor invisible		// Open corridor connecting documents bunker to South Radar
+		// trigger gate_explosive dynamitable_gate		// Allow gate to be dynamitable
+		setstate upper_offices invisible				// Open connection between upper 1st Allied spawn, catwalk towards upper offices/CP
+		trigger cp_corridor switch_route				// Switch CP <-> South Radar corridor to Brewdog-like layout
+		trigger upper_offices_flag enable_flag		// Enable Brewdog-like flag spawn. Replaces Allied CP spawn.
+		trigger allied_cabinet_toi allied_cabinets		// Health and Ammo cabinets near Allied spawn. Default enabled
+		trigger axis_cabinet_toi axis_cabinets			// Health and Ammo cabinets near Axis spawn. Default enabled
+		//
+		//====MAP OBJECTIVES=================================================================
+		trigger documents enable_documents			// Enable Documents map objective
+		// trigger north_radar enable_radars				// Enable Radar map objective
+		//===================================================================================
+	}
+
+	trigger check_game
+	{
+		globalaccum 1 abort_if_not_equal 0
+		globalaccum 2 abort_if_not_equal 0
+		globalaccum 3 abort_if_not_equal 0
+		
+		wm_setwinner 1
+		
+		wait 1000
+		
+		remapshader models/mapobjects/trees_sd/winterbranch01		models/mapobjects/trees_sd/winterbranch01
+		remapshader models/mapobjects/trees_sd/wintertrunk01		models/mapobjects/trees_sd/wintertrunk01
+		remapshaderflush
+		wm_endround
+	}
+}
+
+allied_cabinet_toi
+{
+	trigger allied_cabinets
+	{
+		setstate allied_ammo_trigger default
+		setstate allied_ammo_model default
+		setstate allied_health_trigger default
+		setstate allied_health_model default
+		setstate allied_cabinet_toi default
+		setstate allied_cabinet_marker default
+	}
+}
+
+axis_cabinet_toi
+{
+	trigger axis_cabinets
+	{
+		setstate axis_ammo_trigger default
+		setstate axis_ammo_model default
+		setstate axis_health_trigger default
+		setstate axis_health_model default
+		setstate axis_cabinet_toi default
+		setstate axis_cabinet_marker default
+	}
+}
+
+documents
+{
+	trigger enable_documents
+	{
+		setstate documents_toi default
+		setstate documents_cmm default
+		setstate transmitter_crates default
+		setstate transmitter_room invisible
+		setstate transmitter_toi default
+		setstate transmitter_cmm default
+		setstate transmitter_obj default
+		setstate documents_table default
+		setstate documents_table_model default
+		globalaccum 3 set 1	// Documents undelivered
+		
+		remapshader textures/etl_base/documents_walls textures/etl_base/documents_walls_yellow
+		remapshaderflush
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "base_axis_objdef"
+		wm_addteamvoiceannounce 1 "base_allies_objsteal"
+		
+		wm_teamvoiceannounce 0 "base_axis_objdef"
+		wm_teamvoiceannounce 1 "base_allies_objsteal"
+		// *---------------------------------------------------------------------------------*	
+		
+		trigger self movepos
+	}
+	
+	trigger movepos
+	{
+		set
+		{
+			origin "1440 2016 352"
+		}
+	}
+	
+	trigger stolen 
+    {
+    	setstate documents_CMM invisible //HIDE COMMANDMAP MARKER
+	}
+	
+	trigger dropped
+	{
+		// *----------------------------------- vo ------------------------------------------*
+		wm_teamvoiceannounce 1 "allies_hq_objective_lost"
+		// *---------------------------------------------------------------------------------*
+	}
+	
+	trigger returned
+	{
+		setstate documents_CMM default //SHOW COMMANDMAP MARKER
+	} 
+	
+	trigger captured
+	{
+		wm_objective_status 3 1 1
+		wm_objective_status 3 0 2
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "Allied team has transmitted the Documents!"
+		
+		wm_removeteamvoiceannounce 0 "base_axis_objdef"
+		wm_removeteamvoiceannounce 1 "base_allies_objsteal"
+		
+		wm_teamvoiceannounce 0 "axis_hq_objective_lost"
+		wm_teamvoiceannounce 1 "allies_hq_objective_captured"
+		// *---------------------------------------------------------------------------------*
+		
+		globalaccum 3 set 0
+		trigger game_manager check_game
+	}
+}
+
+north_radar
+{
+	spawn
+	{
+		wait 240
+		constructible_class 3
+	}
+	
+	trigger enable_radars
+	{
+		setstate north_radar default
+		setstate north_radar_toi default
+		globalaccum 1 set 1	// North Radar active
+		
+		setstate south_radar default
+		setstate south_radar_toi default
+		globalaccum 2 set 1	// South Radar active
+		
+		// Bridge cover not compatible with Radars. Overriding the optional settings in game_manager
+		setstate bridge_door_hint invisible
+		trigger bridge_door_gauge_in disable
+		trigger bridge_door_gauge_out disable
+		setstate bridge_cover invisible
+		
+		remapshader textures/etl_base/radar_walls textures/etl_base/radar_walls_yellow
+		remapshaderflush
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "base_axis_bothdef"
+		wm_addteamvoiceannounce 1 "base_allies_bothdyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_bothdef"
+		wm_teamvoiceannounce 1 "base_allies_bothdyn"
+		// *---------------------------------------------------------------------------------*	
+	}
+	
+	death
+	{
+		alertentity north_radar_explosions
+		setstate north_radar_debris invisible
+		setstate north_radar_remains default
+		setstate north_radar_antenna invisible
+		disablespeaker north_radar_sound
+		alertentity north_radar_rubble
+		
+		wm_objective_status 1 1 1
+		wm_objective_status 1 0 2
+		
+		globalaccum 1 set 0
+		
+		alertentity sound_alarm
+		
+		trigger game_manager check_game
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "The North Radar has been disabled!"
+		
+		wm_removeteamvoiceannounce 0 "base_axis_bothdef"
+		wm_removeteamvoiceannounce 0 "base_axis_northdef"
+		wm_removeteamvoiceannounce 1 "base_allies_bothdyn"
+		wm_removeteamvoiceannounce 1 "base_allies_northdyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_northdest"
+		wm_teamvoiceannounce 1 "base_allies_northdest"
+		
+		globalaccum 2 abort_if_equal 0
+		wm_addteamvoiceannounce 0 "base_axis_southdef"
+		wm_addteamvoiceannounce 1 "base_allies_southdyn"
+		// *---------------------------------------------------------------------------------*
+	}
+}
+
+south_radar
+{
+	spawn
+	{
+		wait 240
+		constructible_class 3
+	}
+	
+	death
+	{
+		alertentity south_radar_explosions
+		setstate south_radar_debris invisible
+		setstate south_radar_remains default
+		setstate south_radar_antenna invisible
+		disablespeaker south_radar_sound
+		alertentity south_radar_rubble
+		
+		
+		wm_objective_status 2 1 1
+		wm_objective_status 2 0 2
+		
+		globalaccum 2 set 0
+		
+		alertentity sound_alarm
+		
+		trigger game_manager check_game
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "The South Radar has been disabled!"
+		
+		wm_removeteamvoiceannounce 0 "base_axis_bothdef"
+		wm_removeteamvoiceannounce 0 "base_axis_southdef"
+		wm_removeteamvoiceannounce 1 "base_allies_bothdyn"
+		wm_removeteamvoiceannounce 1 "base_allies_southdyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_southdest"
+		wm_teamvoiceannounce 1 "base_allies_southdest"
+		
+		globalaccum 1 abort_if_equal 0
+		wm_addteamvoiceannounce 0 "base_axis_northdef"
+		wm_addteamvoiceannounce 1 "base_allies_northdyn"
+		// *---------------------------------------------------------------------------------*
+	}
+}
+
+// === COMMAND POST ===
+axis_cp
+{
+	spawn
+	{
+		wait 400
+		constructible_class 2
+		disablespeaker axis_cp_sound
+		setstate axis_cp_model invisible
+	}
+
+	buildstart
+	{
+		setstate cp_closed invisible
+		setstate axis_cp_model underconstruction
+	}
+
+	decayed
+	{
+		setstate cp_closed default
+		setstate axis_cp_model invisible
+	}
+
+	built
+	{
+		setstate axis_cp_model default
+		setstate cp_clip invisible		
+
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "^1Axis Command Post constructed. Charge speed increased!"
+		
+		wm_removeteamvoiceannounce 1 "allies_hq_compost_construct"
+
+		wm_teamvoiceannounce 0 "axis_hq_compost_constructed"
+		wm_teamvoiceannounce 1 "allies_hq_compost_constructed_axis"
+		// *---------------------------------------------------------------------------------*
+
+		wm_objective_status 5 0 1
+		wm_objective_status 5 1 2
+		
+		setchargetimefactor 0 soldier 0.75
+		setchargetimefactor 0 lieutenant 0.75
+		setchargetimefactor 0 medic 0.75
+		setchargetimefactor 0 engineer 0.75
+		setchargetimefactor 0 covertops 0.75
+		sethqstatus 0 1
+		
+		enablespeaker axis_cp_sound
+	}
+
+	death
+	{
+		setstate axis_cp_model invisible
+		setstate cp_closed default
+		setstate cp_clip default
+
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "^5The Allied team has destroyed the Axis Command Post!"
+
+		wm_teamvoiceannounce 0 "axis_hq_compost_damaged"
+		wm_teamvoiceannounce 1 "allies_hq_compost_damaged"
+		
+		wm_addteamvoiceannounce 0 "axis_hq_compost_construct"
+		// *---------------------------------------------------------------------------------*
+
+		wm_objective_status 5 0 0
+		wm_objective_status 5 1 0
+		
+		setchargetimefactor 0 soldier 1
+		setchargetimefactor 0 lieutenant 1
+		setchargetimefactor 0 medic 1
+		setchargetimefactor 0 engineer 1
+		setchargetimefactor 0 covertops 1
+		sethqstatus 0 0
+		
+		disablespeaker axis_cp_sound
+	}
+}
+
+allied_cp
+{
+	spawn
+	{
+		wait 400
+		constructible_class 2
+		disablespeaker allied_cp_sound
+		setstate allied_cp_model invisible
+		setstate allied_cp_wobj invisible
+	}
+
+	buildstart
+	{
+		setstate cp_closed invisible
+		setstate allied_cp_model underconstruction
+	}
+
+	decayed
+	{
+		setstate cp_closed default
+		setstate allied_cp_model invisible
+	}
+
+	built
+	{
+		setstate allied_cp_model default
+		setstate cp_clip invisible
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "^5Allied Command Post constructed. Charge speed increased!"
+		
+		wm_removeteamvoiceannounce 1 "allies_hq_compost_construct"
+
+		wm_teamvoiceannounce 0 "axis_hq_compost_constructed_allies"
+		wm_teamvoiceannounce 1 "allies_hq_compost_constructed"
+		// *---------------------------------------------------------------------------------*		
+
+		wm_objective_status 5 0 2
+		wm_objective_status 5 1 1
+		setautospawn "Command Post" 1
+		
+		setchargetimefactor 1 soldier 0.75
+		setchargetimefactor 1 lieutenant 0.75
+		setchargetimefactor 1 medic 0.75
+		setchargetimefactor 1 engineer 0.75
+		setchargetimefactor 1 covertops 0.75
+		sethqstatus 1 1
+		
+		enablespeaker allied_cp_sound
+		
+		globalaccum 4 abort_if_equal 1
+		setstate allied_cp_wobj default
+		alertentity allied_cp_spawns
+	}
+
+	death
+	{
+		setstate allied_cp_model invisible
+		setstate cp_closed default
+		setstate cp_clip default
+
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "^1The Axis team has destroyed the Allied Command Post!"
+
+		wm_teamvoiceannounce 1 "allies_hq_compost_damaged"
+		
+		wm_addteamvoiceannounce 1 "allies_hq_compost_construct"
+		// *---------------------------------------------------------------------------------*		
+		
+		wm_objective_status 5 0 0
+		wm_objective_status 5 1 0
+		setautospawn "Allied Spawn" 1
+		
+		setchargetimefactor 1 soldier 1
+		setchargetimefactor 1 lieutenant 1
+		setchargetimefactor 1 medic 1
+		setchargetimefactor 1 engineer 1
+		setchargetimefactor 1 covertops 1
+		sethqstatus 1 0
+		
+		disablespeaker allied_cp_sound
+		
+		globalaccum 4 abort_if_equal 1
+		setstate allied_cp_wobj invisible
+		alertentity allied_cp_spawns
+		
+	}
+}
+
+bridge_door_hint
+{
+	activate
+	{
+		trigger bridge_door_lever activate
+	}
+}
+
+bridge_door_gauge_out
+{
+	spawn
+	{
+		wait 360
+		faceangles 0 0 90 100
+	}
+	
+	trigger enable
+	{
+		faceangles 0 0 225 600
+		faceangles 0 0 315 400
+		trigger self wobble
+	}
+	
+	trigger wobble
+	{
+		faceangles 0 0 325 400
+		faceangles 0 0 310 500
+		faceangles 0 0 320 400
+		faceangles 0 0 315 200
+		trigger self wobble
+	}
+	
+	trigger disable
+	{
+		halt
+		faceangles 0 0 45 1
+		faceangles 0 0 135 400
+		faceangles 0 0 180 600
+	}
+}
+
+bridge_door_gauge_in
+{
+	spawn
+	{
+		wait 360
+		faceangles 0 0 270 100
+	}
+	
+	trigger enable
+	{
+		faceangles 0 0 135 600
+		faceangles 0 0 45 400
+		trigger self wobble
+	}
+	
+	trigger wobble
+	{
+		faceangles 0 0 55 400
+		faceangles 0 0 40 500
+		faceangles 0 0 50 400
+		faceangles 0 0 45 200
+		trigger self wobble
+	}
+	
+	trigger disable
+	{
+		halt
+		faceangles 0 0 315 1
+		faceangles 0 0 225 400
+		faceangles 0 0 180 600
+	}
+}
+
+// ACCUM 0:	BRIDGE_DOOR	(0=CLOSED, 2=OPEN)
+bridge_door
+{
+	
+	trigger enable_door
+	{
+		trigger bridge_door_gauge_in enable
+		trigger bridge_door_gauge_out enable
+		setstate bridge_door_hint default
+		setstate bridge_cover default	
+		
+		remapshader textures/etl_base/bridge_door_lights_neutral	textures/etl_lights/lights_green
+		remapshaderflush
+	}
+	
+	trigger activate
+	{
+		accum 0 trigger_if_equal 0 bridge_door open				// IF_CLOSED
+		accum 0 trigger_if_equal 2 bridge_door close				// IF_OPEN
+	}
+	
+	trigger close
+	{
+		accum 0 set 3	// CLOSING
+		playsound sound/movers/misc/big_gate2.wav looping  volume 255
+		trigger bridge_door_2 close
+		gotomarker bridge_door_closed 32 wait
+		accum 0 abort_if_not_equal 3	// ABORT_IF_NOT_CLOSING
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav  volume 255
+		wait 1968	// wait for wav to play
+		accum 0 set 0	// CLOSED
+		wait 1000
+		setstate bridge_door_hint default
+	}
+	
+	trigger open
+	{
+		accum 0 set 1	// OPENING
+		playsound sound/movers/misc/big_gate2.wav looping  volume 255
+		trigger bridge_door_2 open
+		gotomarker bridge_door_open 32 wait
+		accum 0 abort_if_not_equal 1	// ABORT_IF_NOT_OPENING
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav  volume 255
+		wait 1968	// wait for wav to play
+		accum 0 set 2	// OPEN
+		wait 1000
+		setstate bridge_door_hint default
+	}
+}
+
+bridge_door_2
+{
+	trigger close
+	{
+		gotomarker bridge_door_2_closed 32 wait
+	}
+	
+	trigger open
+	{
+		gotomarker bridge_door_2_open 32 wait
+	}
+}
+
+// ACCUM 0:	BRIDGE_DOOR_LEVER	(0=CLOSED, 1=OPEN)
+bridge_door_lever
+{
+	trigger activate
+	{
+		setstate bridge_door_hint invisible
+		accum 0 trigger_if_equal 0 bridge_door_lever open		// TRIGGER_IF_CLOSED
+		accum 0 trigger_if_equal 1 bridge_door_lever close		// TRIGGER_IF_OPEN
+	}	
+	
+	trigger close
+	{
+		halt
+		enablespeaker bridge_door_lever_sound
+		gotomarker bridge_door_lever_down 16 wait
+		disablespeaker bridge_door_lever_sound
+		accum 0 set 0	// CLOSED
+		stopsound
+		trigger bridge_door activate
+	}
+	
+	trigger open
+	{
+		enablespeaker bridge_door_lever_sound
+		gotomarker bridge_door_lever_up 16 wait
+		disablespeaker bridge_door_lever_sound
+		accum 0 set 1		// OPEN
+		stopsound
+		trigger bridge_door activate
+	}
+}
+
+// === GATE ===
+gate_hint
+{
+	activate
+	{
+		trigger gate_lever activate
+		trigger gate_lever_outside activate
+		setstate gate_hint invisible
+		setstate gate_hint_outside invisible
+	}
+}
+
+gate_hint_outside
+{
+	activate
+	{
+		trigger gate_lever activate
+		trigger gate_lever_outside activate
+		setstate gate_hint invisible
+		setstate gate_hint_outside invisible
+	}
+	
+	trigger remove
+	{
+		remove
+	}
+}
+
+gate_gauge_out
+{
+	spawn
+	{
+		wait 360
+		faceangles 0 0 90 100
+	}
+	
+	trigger enable
+	{
+		faceangles 0 0 225 600
+		faceangles 0 0 315 400
+		trigger self wobble
+	}
+	
+	trigger wobble
+	{
+		faceangles 0 0 325 400
+		faceangles 0 0 310 500
+		faceangles 0 0 320 400
+		faceangles 0 0 315 200
+		trigger self wobble
+	}
+	
+	trigger disable
+	{
+		halt
+		faceangles 0 0 315 1
+		faceangles 0 0 225 400
+		faceangles 0 0 90 600
+	}
+}
+
+gate_gauge_in
+{
+	spawn
+	{
+		wait 360
+		faceangles 0 0 270 100
+	}
+	
+	trigger enable
+	{
+		faceangles 0 0 135 600
+		faceangles 0 0 45 400
+		trigger self wobble
+	}
+	
+	trigger wobble
+	{
+		faceangles 0 0 55 400
+		faceangles 0 0 40 500
+		faceangles 0 0 50 400
+		faceangles 0 0 45 200
+		trigger self wobble
+	}
+	
+	trigger disable
+	{
+		halt
+		faceangles 0 0 45 1
+		faceangles 0 0 135 400
+		faceangles 0 0 270 600
+	}
+}
+
+// ACCUM 0:	gate	(0=CLOSED, 1=OPENING, 2=OPEN, 3=CLOSING)
+gate
+{
+	trigger activate
+	{
+		accum 0 trigger_if_equal 0 gate open				// IF_CLOSED
+		accum 0 trigger_if_equal 1 gate stop_and_close		// IF_OPENING
+		accum 0 trigger_if_equal 2 gate close				// IF_OPEN
+		accum 0 trigger_if_equal 3 gate stop_and_open		// IF_CLOSING
+	}
+	
+	trigger stop_and_close
+	{
+		halt
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav volume 255
+		wait 1968	// wait for wav to play
+		trigger self close
+	}
+	
+	trigger stop_and_open
+	{
+		halt
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav volume 255
+		wait 1968	// wait for wav to play
+		trigger self open
+	}
+	
+	trigger close
+	{
+		accum 0 set 3	// CLOSING
+		playsound sound/movers/misc/big_gate2.wav looping  volume 255
+		gotomarker gate_closed 8 wait
+		accum 0 abort_if_not_equal 3	// ABORT_IF_NOT_CLOSING
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav  volume 255
+		wait 1968	// wait for wav to play
+		accum 0 set 0	// CLOSED
+	}
+	
+	trigger open
+	{
+		accum 0 set 1	// OPENING
+		playsound sound/movers/misc/big_gate2.wav looping  volume 255
+		gotomarker gate_open 16 wait
+		accum 0 abort_if_not_equal 1	// ABORT_IF_NOT_OPENING
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav  volume 255
+		wait 1968	// wait for wav to play
+		accum 0 set 2	// OPEN
+	}
+	
+	trigger remove
+	{
+		halt
+		setstate gate_hint invisible
+		setstate gate_hint_outside invisible
+		remove
+	}
+}
+
+// ACCUM 0:	gate_LEVER	(0=CLOSED, 1=OPEN)
+gate_lever
+{
+	trigger activate
+	{
+		accum 0 trigger_if_equal 0 gate_lever open		// TRIGGER_IF_CLOSED
+		accum 0 trigger_if_equal 1 gate_lever close		// TRIGGER_IF_OPEN
+	}	
+	
+	trigger close
+	{
+		halt
+		enablespeaker gate_lever_sound
+		enablespeaker gate_lever_sound_outside
+		gotomarker gate_lever_down 16 wait
+		disablespeaker gate_lever_sound
+		disablespeaker gate_lever_sound_outside
+		accum 0 set 0	// CLOSED
+		stopsound
+		trigger gate activate
+		wait 1000
+		setstate gate_hint default
+		setstate gate_hint_outside default
+	}
+	
+	trigger open
+	{
+		enablespeaker gate_lever_sound
+		enablespeaker gate_lever_sound_outside
+		gotomarker gate_lever_up 16 wait
+		disablespeaker gate_lever_sound
+		disablespeaker gate_lever_sound_outside
+		accum 0 set 1		// OPEN
+		stopsound
+		trigger gate activate
+		wait 1000
+		setstate gate_hint default
+		setstate gate_hint_outside default
+	}
+}
+
+// ACCUM 0:	gate_LEVER	(0=CLOSED, 1=OPEN)
+gate_lever_outside
+{
+	trigger activate
+	{
+		accum 0 trigger_if_equal 0 gate_lever_outside open		// TRIGGER_IF_CLOSED
+		accum 0 trigger_if_equal 1 gate_lever_outside close		// TRIGGER_IF_OPEN
+	}	
+	
+	trigger close
+	{
+		halt
+		gotomarker gate_lever_down 16 wait
+		accum 0 set 0	// CLOSED
+		stopsound
+	}
+	
+	trigger open
+	{
+		halt
+		gotomarker gate_lever_up 16 wait
+		accum 0 set 1		// OPEN
+		stopsound
+	}
+	
+	trigger remove
+	{
+		remove
+	}
+}
+
+gate_explosive
+{
+	spawn
+	{
+		wait 240
+		constructible_class 3
+	}
+	
+	trigger dynamitable_gate
+	{
+		setstate gate_explosive default
+		setstate gate_explosive_toi default
+		setstate gate_gauge_out invisible
+		setstate gate_lever_outside_box invisible
+		trigger gate_hint_outside remove
+		trigger gate_lever_outside remove
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "base_axis_gatestop"
+		wm_addteamvoiceannounce 1 "base_allies_gatedyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_gatestop"
+		wm_teamvoiceannounce 1 "base_allies_gatedyn"
+		// *---------------------------------------------------------------------------------*
+	}
+	
+	death
+	{
+		trigger gate remove
+		remapshader textures/etl_base/gate_lights_neutral			textures/etl_lights/lights_red
+		trigger gate_gauge_in disable
+		trigger gate_gauge_out disable
+		remapshaderflush
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce "The Gate has been destroyed!"
+		wm_removeteamvoiceannounce 0 "base_axis_gatestop"
+		wm_removeteamvoiceannounce 1 "base_allies_gatedyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_gatedest"
+		wm_teamvoiceannounce 1 "base_allies_gatedest"
+		// *---------------------------------------------------------------------------------*
+	}
+}
+
+upper_tunnel
+{
+	trigger enable_route
+	{
+		setstate upper_tunnel invisible
+		setstate upper_tunnel_ladder default
+	}
+}
+
+cp_corridor
+{
+	trigger switch_route
+	{
+		setstate cp_corridor invisible
+		setstate cp_corridor_block default
+	}
+}
+
+upper_offices_flag
+{
+	spawn
+	{
+		wait 360
+		disablespeaker flag_sound
+	}
+	
+	trigger axis_capture
+	{
+		disablespeaker flag_sound
+		accum 0 abort_if_equal 0	//already AXIS?
+		accum 0 set 0				//set AXIS
+		
+		setautospawn "Allied Spawn" 1
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce	"^1The Axis have reclaimed the Upper Offices!"
+		
+		wm_teamvoiceannounce 1 "base_allies_loseground"
+		wm_teamvoiceannounce 0 "base_axis_gainground"
+		// *----------------------------------- vo ------------------------------------------*
+	}
+
+	trigger allied_capture
+	{
+		enablespeaker flag_sound
+		accum 0 abort_if_equal 1	//already ALLIED?
+		accum 0 set 1				//set ALLIED
+
+		alertentity upper_offices_wobj
+		
+		setautospawn "Upper Offices" 1
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce	"^5The Allies have captured the Upper Offices!"
+		
+		wm_teamvoiceannounce 1 "base_allies_gainground"
+		wm_teamvoiceannounce 0 "base_axis_loseground"
+		// *----------------------------------- vo ------------------------------------------*
+	}
+	
+	trigger enable_flag
+	{
+		setstate upper_offices_blockade invisible
+		setstate upper_offices_wobj default
+		setstate upper_offices_wobj_cam default
+		globalaccum 4 set 1
+	}
+}
