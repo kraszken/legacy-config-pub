@@ -4,7 +4,6 @@
 // GLOBALACCUM 1:	North Radar 		(0-destroyed; 	1-active)
 // GLOBALACCUM 2:	South Radar 		(0-destroyed; 	1-active)
 // GLOBALACCUM 3:	Documents 			(0-delivered; 	1-undelivered)
-// GLOBALACCUM 4:	Upper Offices Flag	(0-disabled; 	1-enabled)
 
 game_manager
 {
@@ -13,12 +12,20 @@ game_manager
 		// Game rules
 		wm_axis_respawntime 30
 		wm_allied_respawntime 20
-		wm_number_of_objectives 5
+		wm_number_of_objectives 3
 		wm_set_round_timelimit	15
 		wm_set_defending_team	0
 		wm_setwinner 0
 		
-		wait 450
+		setautospawn "Allied Spawn" 1
+		setautospawn "Axis Spawn" 0
+		
+		wait 20
+		
+		// Map Objectives
+		globalaccum 1 set 1		// North Radar active
+		globalaccum 2 set 1		// South Radar active
+		globalaccum 3 set 0		// Documents inactive
 		
 		// deactivate Documents
 		setstate documents_toi invisible
@@ -30,29 +37,27 @@ game_manager
 		setstate documents_table invisible
 		setstate documents_table_model invisible
 		
-		// deactivate North Radar
-		setstate north_radar_remains invisible
-		setstate north_radar invisible
-		setstate north_radar_toi invisible
-		
-		// deactivate South Radar
-		setstate south_radar_remains invisible
-		setstate south_radar invisible
-		setstate south_radar_toi invisible
-		
-		// initial setstates
-		setstate upper_tunnel_ladder invisible
+		// deactivate bridge_cover
 		setstate bridge_door_hint invisible
 		trigger bridge_door_gauge_in disable
 		trigger bridge_door_gauge_out disable
 		setstate bridge_cover invisible
+		
+		// deactivate dynamitable gate
 		trigger gate_gauge_in enable
 		trigger gate_gauge_out enable
 		setstate gate_explosive invisible
+		setstate gate_explosive_mover invisible
 		setstate gate_explosive_toi invisible
-		setstate cp_corridor_block invisible
-		setstate upper_offices_wobj invisible
-		setstate upper_offices_wobj_cam invisible
+		
+		// side entrance
+		setstate bunker_door invisible
+		setstate bunker_door_toi invisible
+		
+		// command post
+		setstate allied_cp_model invisible
+		setstate allied_cp_wobj invisible
+		setstate axis_cp_model invisible
 		
 		// allied cabinets
 		setstate allied_ammo_trigger invisible
@@ -70,11 +75,27 @@ game_manager
 		setstate axis_cabinet_toi invisible
 		setstate axis_cabinet_marker invisible
 		
-		remapshader textures/etl_base/bridge_door_lights_neutral	textures/etl_lights/lights_red
-		remapshader textures/etl_base/gate_lights_neutral			textures/etl_lights/lights_green
-		remapshader models/mapobjects/trees_sd/winterbranch01		models/mapobjects/etl_plants/tempbranch03
-		remapshader models/mapobjects/trees_sd/wintertrunk01		models/mapobjects/etl_plants/temptrunk03
+		// other
+		setstate upper_tunnel_ladder invisible
+		setstate cp_corridor_block invisible
+		setstate upper_offices_wobj invisible
+		setstate axis_brewdog_wobj invisible
+		
+		// remapshaders
+		remapshader 	textures/etl_base/bridge_door_lights_neutral	textures/etl_lights/lights_red
+		remapshader 	textures/etl_base/gate_lights_neutral			textures/etl_lights/lights_green
+		remapshader 	textures/etl_base/radar_walls 					textures/etl_base/radar_walls_yellow
 		remapshaderflush
+		
+		// deactivate sounds to prevent bugged sound on /map_restart
+		disablespeaker allied_cp_sound
+		disablespeaker axis_cp_sound
+		disablespeaker flag_sound
+		
+		// set position of limbo cams
+		trigger limbo_cam_1_target movepos_radar
+		trigger limbo_cam_2_target movepos_radar
+		trigger limbo_cam_3_target movepos_cp
 
 		// *----------------------------------- vo ------------------------------------------*
 		wm_addteamvoiceannounce 0 "axis_hq_compost_construct"
@@ -86,24 +107,34 @@ game_manager
 		
 		//====OPTIONAL SETTINGS==============================================================
 		// Toggle the line of the respective setting you want to change by (un-)commenting.
-		wait 1000
+		wait 30
 		//
-		trigger upper_tunnel enable_route 			// Enable upper route at main tunnel towards North Radar
-		trigger bridge_door enable_door				// Enable Brewdog-style bridge cover and sliding door near North Radar; NOT COMPATIBLE WITH RADAR OBJECTIVE!
-		setstate gate_sidepath invisible				// Enable side passage next to tunnel gate
-		setstate documents_ladder invisible				// Add ladder from Axis spawn to documents bunker
-		setstate south_radar_corridor invisible		// Open corridor connecting documents bunker to South Radar
-		// trigger gate_explosive dynamitable_gate		// Allow gate to be dynamitable
-		setstate upper_offices invisible				// Open connection between upper 1st Allied spawn, catwalk towards upper offices/CP
-		trigger cp_corridor switch_route				// Switch CP <-> South Radar corridor to Brewdog-like layout
-		trigger upper_offices_flag enable_flag		// Enable Brewdog-like flag spawn. Replaces Allied CP spawn.
-		trigger allied_cabinet_toi allied_cabinets		// Health and Ammo cabinets near Allied spawn. Default enabled
-		trigger axis_cabinet_toi axis_cabinets			// Health and Ammo cabinets near Axis spawn. Default enabled
 		//
-		//====MAP OBJECTIVES=================================================================
-		trigger documents enable_documents			// Enable Documents map objective
-		// trigger north_radar enable_radars				// Enable Radar map objective
+		// trigger upper_tunnel enable_route 						// Enable upper route at main tunnel towards North Radar
+		// trigger allied_cabinet_toi allied_cabinets					// Health and Ammo cabinets near Allied spawn. Default enabled
+		// trigger axis_cabinet_toi axis_cabinets						// Health and Ammo cabinets near Axis spawn. Default enabled
+		// trigger allied_cp enable_spawns								// Enable Allied CP spawns. Default disabled
+		//
+		//
+		//====BREWDOG========================================================================
+		// trigger bridge_door enable_cover_and_door				// Enable bridge cover and sliding door near North Radar; NOT COMPATIBLE WITH RADAR OBJECTIVE!
+		// setstate gate_sidepath invisible							// Enable side passage next to tunnel gate
+		setstate documents_ladder invisible							// Add ladder from Axis spawn huts to documents bunker
+		// setstate south_radar_corridor invisible					// Open corridor connecting documents bunker to South Radar
+		// trigger gate_explosive dynamitable_gate					// Allow gate to be dynamitable
+		// setstate upper_offices invisible							// Open connection between upper 1st Allied spawn, catwalk towards upper offices/CP
+		trigger cp_corridor switch_route							// Switch CP <-> South Radar corridor to Brewdog-like layout
+		// trigger upper_offices_flag enable_flag					// Switch from CP to flag
+		// trigger bunker_door enabled_bunker_door					// Add a dynamitable side entrance near documents bunker.
+		trigger axis_brewdog_wobj enable_axis_brewdog_spawn		// Switch Axis spawn from regular to Brewdog location.
+		trigger documents switch_to_documents					// Enable Documents map objective
 		//===================================================================================
+		
+		wait 50
+		
+		globalaccum 1 trigger_if_equal 1 north_radar initial_announcements
+		globalaccum 3 trigger_if_equal 1 documents initial_announcements
+		globalaccum 1 trigger_if_equal 1 documents remove	// to remove HUD map objective icon on legacy mod
 	}
 
 	trigger check_game
@@ -115,10 +146,7 @@ game_manager
 		wm_setwinner 1
 		
 		wait 1000
-		
-		remapshader models/mapobjects/trees_sd/winterbranch01		models/mapobjects/trees_sd/winterbranch01
-		remapshader models/mapobjects/trees_sd/wintertrunk01		models/mapobjects/trees_sd/wintertrunk01
-		remapshaderflush
+
 		wm_endround
 	}
 }
@@ -151,8 +179,21 @@ axis_cabinet_toi
 
 documents
 {
-	trigger enable_documents
+	trigger switch_to_documents
 	{
+		// deactivate North Radar
+		setstate north_radar_remains invisible
+		setstate north_radar invisible
+		setstate north_radar_toi invisible
+		globalaccum 1 set 0		// North Radar inactive
+		
+		// deactivate South Radar
+		setstate south_radar_remains invisible
+		setstate south_radar invisible
+		setstate south_radar_toi invisible
+		globalaccum 2 set 0		// South Radar inactive
+		
+		// activate Documents
 		setstate documents_toi default
 		setstate documents_cmm default
 		setstate transmitter_crates default
@@ -162,11 +203,24 @@ documents
 		setstate transmitter_obj default
 		setstate documents_table default
 		setstate documents_table_model default
-		globalaccum 3 set 1	// Documents undelivered
 		
-		remapshader textures/etl_base/documents_walls textures/etl_base/documents_walls_yellow
+		trigger limbo_cam_1_target movepos_documents
+		trigger limbo_cam_2_target movepos_documents
+		
+		globalaccum 3 set 1		// Documents undelivered
+		
+		remapshader 	textures/etl_base/documents_walls 		textures/etl_base/documents_walls_yellow
+		remapshader 	textures/etl_base/radar_walls 			textures/etl_base/radar_walls
 		remapshaderflush
 		
+		set
+		{
+			origin "1440 2016 352"
+		}
+	}
+	
+	trigger initial_announcements
+	{
 		// *----------------------------------- vo ------------------------------------------*
 		wm_addteamvoiceannounce 0 "base_axis_objdef"
 		wm_addteamvoiceannounce 1 "base_allies_objsteal"
@@ -174,16 +228,6 @@ documents
 		wm_teamvoiceannounce 0 "base_axis_objdef"
 		wm_teamvoiceannounce 1 "base_allies_objsteal"
 		// *---------------------------------------------------------------------------------*	
-		
-		trigger self movepos
-	}
-	
-	trigger movepos
-	{
-		set
-		{
-			origin "1440 2016 352"
-		}
 	}
 	
 	trigger stolen 
@@ -205,8 +249,10 @@ documents
 	
 	trigger captured
 	{
-		wm_objective_status 3 1 1
-		wm_objective_status 3 0 2
+		wm_objective_status 1 1 1
+		wm_objective_status 1 0 2
+		wm_objective_status 2 1 1
+		wm_objective_status 2 0 2
 		
 		// *----------------------------------- vo ------------------------------------------*
 		wm_announce "Allied team has transmitted the Documents!"
@@ -221,6 +267,11 @@ documents
 		globalaccum 3 set 0
 		trigger game_manager check_game
 	}
+	
+	trigger remove
+	{
+		remove
+	}
 }
 
 north_radar
@@ -229,34 +280,6 @@ north_radar
 	{
 		wait 240
 		constructible_class 3
-	}
-	
-	trigger enable_radars
-	{
-		setstate north_radar default
-		setstate north_radar_toi default
-		globalaccum 1 set 1	// North Radar active
-		
-		setstate south_radar default
-		setstate south_radar_toi default
-		globalaccum 2 set 1	// South Radar active
-		
-		// Bridge cover not compatible with Radars. Overriding the optional settings in game_manager
-		setstate bridge_door_hint invisible
-		trigger bridge_door_gauge_in disable
-		trigger bridge_door_gauge_out disable
-		setstate bridge_cover invisible
-		
-		remapshader textures/etl_base/radar_walls textures/etl_base/radar_walls_yellow
-		remapshaderflush
-		
-		// *----------------------------------- vo ------------------------------------------*
-		wm_addteamvoiceannounce 0 "base_axis_bothdef"
-		wm_addteamvoiceannounce 1 "base_allies_bothdyn"
-		
-		wm_teamvoiceannounce 0 "base_axis_bothdef"
-		wm_teamvoiceannounce 1 "base_allies_bothdyn"
-		// *---------------------------------------------------------------------------------*	
 	}
 	
 	death
@@ -292,6 +315,17 @@ north_radar
 		wm_addteamvoiceannounce 0 "base_axis_southdef"
 		wm_addteamvoiceannounce 1 "base_allies_southdyn"
 		// *---------------------------------------------------------------------------------*
+	}
+	
+	trigger initial_announcements
+	{
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "base_axis_bothdef"
+		wm_addteamvoiceannounce 1 "base_allies_bothdyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_bothdef"
+		wm_teamvoiceannounce 1 "base_allies_bothdyn"
+		// *---------------------------------------------------------------------------------*	
 	}
 }
 
@@ -347,8 +381,6 @@ axis_cp
 	{
 		wait 400
 		constructible_class 2
-		disablespeaker axis_cp_sound
-		setstate axis_cp_model invisible
 	}
 
 	buildstart
@@ -377,8 +409,8 @@ axis_cp
 		wm_teamvoiceannounce 1 "allies_hq_compost_constructed_axis"
 		// *---------------------------------------------------------------------------------*
 
-		wm_objective_status 5 0 1
-		wm_objective_status 5 1 2
+		wm_objective_status 3 0 1
+		wm_objective_status 3 1 2
 		
 		setchargetimefactor 0 soldier 0.75
 		setchargetimefactor 0 lieutenant 0.75
@@ -405,8 +437,8 @@ axis_cp
 		wm_addteamvoiceannounce 0 "axis_hq_compost_construct"
 		// *---------------------------------------------------------------------------------*
 
-		wm_objective_status 5 0 0
-		wm_objective_status 5 1 0
+		wm_objective_status 3 0 0
+		wm_objective_status 3 1 0
 		
 		setchargetimefactor 0 soldier 1
 		setchargetimefactor 0 lieutenant 1
@@ -417,17 +449,20 @@ axis_cp
 		
 		disablespeaker axis_cp_sound
 	}
+	
+	trigger remove
+	{
+		remove
+	}
 }
 
 allied_cp
+// ACCUM 1: 0=spawns disabled; 1=spawns enabled
 {
 	spawn
 	{
 		wait 400
 		constructible_class 2
-		disablespeaker allied_cp_sound
-		setstate allied_cp_model invisible
-		setstate allied_cp_wobj invisible
 	}
 
 	buildstart
@@ -456,9 +491,8 @@ allied_cp
 		wm_teamvoiceannounce 1 "allies_hq_compost_constructed"
 		// *---------------------------------------------------------------------------------*		
 
-		wm_objective_status 5 0 2
-		wm_objective_status 5 1 1
-		setautospawn "Command Post" 1
+		wm_objective_status 3 0 2
+		wm_objective_status 3 1 1
 		
 		setchargetimefactor 1 soldier 0.75
 		setchargetimefactor 1 lieutenant 0.75
@@ -469,7 +503,8 @@ allied_cp
 		
 		enablespeaker allied_cp_sound
 		
-		globalaccum 4 abort_if_equal 1
+		// Toggle CP spawns if enabled
+		accum 1 abort_if_equal 0
 		setstate allied_cp_wobj default
 		alertentity allied_cp_spawns
 	}
@@ -488,9 +523,8 @@ allied_cp
 		wm_addteamvoiceannounce 1 "allies_hq_compost_construct"
 		// *---------------------------------------------------------------------------------*		
 		
-		wm_objective_status 5 0 0
-		wm_objective_status 5 1 0
-		setautospawn "Allied Spawn" 1
+		wm_objective_status 3 0 0
+		wm_objective_status 3 1 0
 		
 		setchargetimefactor 1 soldier 1
 		setchargetimefactor 1 lieutenant 1
@@ -501,10 +535,15 @@ allied_cp
 		
 		disablespeaker allied_cp_sound
 		
-		globalaccum 4 abort_if_equal 1
+		// Toggle CP spawns if enabled
+		accum 1 abort_if_equal 0
 		setstate allied_cp_wobj invisible
 		alertentity allied_cp_spawns
-		
+	}
+	
+	trigger enable_spawns
+	{
+		accum 1 set 1
 	}
 }
 
@@ -586,7 +625,7 @@ bridge_door_gauge_in
 bridge_door
 {
 	
-	trigger enable_door
+	trigger enable_cover_and_door
 	{
 		trigger bridge_door_gauge_in enable
 		trigger bridge_door_gauge_out enable
@@ -738,6 +777,11 @@ gate_gauge_out
 		faceangles 0 0 225 400
 		faceangles 0 0 90 600
 	}
+	
+	trigger remove
+	{
+		remove
+	}
 }
 
 gate_gauge_in
@@ -831,6 +875,57 @@ gate
 		halt
 		setstate gate_hint invisible
 		setstate gate_hint_outside invisible
+		trigger gate_explosive_mover remove
+		remove
+	}
+}
+
+// ACCUM 0:	gate_explosive_mover	(0=CLOSED, 1=OPENING, 2=OPEN, 3=CLOSING)
+gate_explosive_mover
+{
+	trigger activate
+	{
+		accum 0 trigger_if_equal 0 gate_explosive_mover open				// IF_CLOSED
+		accum 0 trigger_if_equal 1 gate_explosive_mover stop_and_close		// IF_OPENING
+		accum 0 trigger_if_equal 2 gate_explosive_mover close				// IF_OPEN
+		accum 0 trigger_if_equal 3 gate_explosive_mover stop_and_open		// IF_CLOSING
+	}
+	
+	trigger stop_and_close
+	{
+		halt
+		wait 1968	// wait for wav to play
+		trigger self close
+	}
+	
+	trigger stop_and_open
+	{
+		halt
+		wait 1968	// wait for wav to play
+		trigger self open
+	}
+	
+	trigger close
+	{
+		accum 0 set 3	// CLOSING
+		gotomarker gate_closed 8 wait
+		accum 0 abort_if_not_equal 3	// ABORT_IF_NOT_CLOSING
+		wait 1968	// wait for wav to play
+		accum 0 set 0	// CLOSED
+	}
+	
+	trigger open
+	{
+		accum 0 set 1	// OPENING
+		gotomarker gate_open 16 wait
+		accum 0 abort_if_not_equal 1	// ABORT_IF_NOT_OPENING
+		wait 1968	// wait for wav to play
+		accum 0 set 2	// OPEN
+	}
+	
+	trigger remove
+	{
+		halt
 		remove
 	}
 }
@@ -855,6 +950,7 @@ gate_lever
 		accum 0 set 0	// CLOSED
 		stopsound
 		trigger gate activate
+		trigger gate_explosive_mover activate
 		wait 1000
 		setstate gate_hint default
 		setstate gate_hint_outside default
@@ -870,6 +966,7 @@ gate_lever
 		accum 0 set 1		// OPEN
 		stopsound
 		trigger gate activate
+		trigger gate_explosive_mover activate
 		wait 1000
 		setstate gate_hint default
 		setstate gate_hint_outside default
@@ -918,9 +1015,10 @@ gate_explosive
 	trigger dynamitable_gate
 	{
 		setstate gate_explosive default
+		setstate gate_explosive_mover default
 		setstate gate_explosive_toi default
-		setstate gate_gauge_out invisible
 		setstate gate_lever_outside_box invisible
+		trigger gate_gauge_out remove
 		trigger gate_hint_outside remove
 		trigger gate_lever_outside remove
 		
@@ -952,6 +1050,61 @@ gate_explosive
 	}
 }
 
+upper_offices_flag
+{
+	trigger enable_flag
+	{
+		// disable CP
+		setstate cp_clip invisible
+		setstate cp_toi invisible
+		setstate cp_closed invisible
+		
+		// make flag accessible
+		setstate upper_offices_blockade invisible
+		
+		// switch limbo cam from CP to flag
+		trigger limbo_cam_3_target movepos_flag
+	}
+	
+	trigger axis_capture
+	{
+		disablespeaker flag_sound
+		accum 0 abort_if_equal 0	//already AXIS?
+		accum 0 set 0				//set AXIS
+		
+		setstate upper_offices_wobj invisible
+		
+		wm_objective_status 3 0 1
+		wm_objective_status 3 1 2
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce	"^1The Axis have reclaimed the Upper Offices!"
+		
+		wm_teamvoiceannounce 1 "base_allies_loseground"
+		wm_teamvoiceannounce 0 "base_axis_gainground"
+		// *----------------------------------- vo ------------------------------------------*
+	}
+
+	trigger allied_capture
+	{
+		enablespeaker flag_sound
+		accum 0 abort_if_equal 1	//already ALLIED?
+		accum 0 set 1				//set ALLIED
+
+		setstate upper_offices_wobj default
+		
+		wm_objective_status 3 0 2
+		wm_objective_status 3 1 1
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_announce	"^5The Allies have captured the Upper Offices!"
+		
+		wm_teamvoiceannounce 1 "base_allies_gainground"
+		wm_teamvoiceannounce 0 "base_axis_loseground"
+		// *----------------------------------- vo ------------------------------------------*
+	}
+}
+
 upper_tunnel
 {
 	trigger enable_route
@@ -970,53 +1123,129 @@ cp_corridor
 	}
 }
 
-upper_offices_flag
+bunker_door
 {
 	spawn
 	{
-		wait 360
-		disablespeaker flag_sound
-	}
-	
-	trigger axis_capture
-	{
-		disablespeaker flag_sound
-		accum 0 abort_if_equal 0	//already AXIS?
-		accum 0 set 0				//set AXIS
-		
-		setautospawn "Allied Spawn" 1
-		
-		// *----------------------------------- vo ------------------------------------------*
-		wm_announce	"^1The Axis have reclaimed the Upper Offices!"
-		
-		wm_teamvoiceannounce 1 "base_allies_loseground"
-		wm_teamvoiceannounce 0 "base_axis_gainground"
-		// *----------------------------------- vo ------------------------------------------*
+		wait 50
+		constructible_class	3
 	}
 
-	trigger allied_capture
+	death
 	{
-		enablespeaker flag_sound
-		accum 0 abort_if_equal 1	//already ALLIED?
-		accum 0 set 1				//set ALLIED
-
-		alertentity upper_offices_wobj
-		
-		setautospawn "Upper Offices" 1
-		
 		// *----------------------------------- vo ------------------------------------------*
-		wm_announce	"^5The Allies have captured the Upper Offices!"
+		wm_announce	"The Allies have breached the Bunker Door!"
+
+		wm_removeteamvoiceannounce 0 "base_axis_bunkerdoordef"
+		wm_removeteamvoiceannounce 1 "base_allies_bunkerdoordyn"
 		
-		wm_teamvoiceannounce 1 "base_allies_gainground"
-		wm_teamvoiceannounce 0 "base_axis_loseground"
+		wm_teamvoiceannounce 0 "base_axis_bunkerdoordest"
+		wm_teamvoiceannounce 1 "base_allies_bunkerdoordest"
 		// *----------------------------------- vo ------------------------------------------*
 	}
 	
-	trigger enable_flag
+	trigger enabled_bunker_door
 	{
-		setstate upper_offices_blockade invisible
-		setstate upper_offices_wobj default
-		setstate upper_offices_wobj_cam default
-		globalaccum 4 set 1
+		setstate bunker_door default
+		setstate bunker_door_toi default
+		
+		// *----------------------------------- vo ------------------------------------------*
+		wm_addteamvoiceannounce 0 "base_axis_bunkerdoordef"
+		wm_addteamvoiceannounce 1 "base_allies_bunkerdoordyn"
+		
+		wm_teamvoiceannounce 0 "base_axis_bunkerdoordef"
+		wm_teamvoiceannounce 1 "base_allies_bunkerdoordyn"
+		// *---------------------------------------------------------------------------------*
+	}
+}
+
+axis_brewdog_wobj
+{
+	trigger enable_axis_brewdog_spawn
+	{
+		// disable regular Axis spawn
+		trigger axis_spawn remove
+		trigger axis_spawn_wobj remove
+		
+		// enable brewdog Axis spawn
+		setautospawn "Axis Side" 0
+		alertentity axis_brewdog_spawn
+		setstate axis_brewdog_wobj default
+	}
+}
+
+axis_spawn
+{
+	trigger remove
+	{
+		alertentity axis_spawn
+		setstate axis_spawn invisible
+		remove
+	}
+}
+
+axis_spawn_wobj
+{
+	trigger remove
+	{
+		setstate axis_spawn_wobj invisible
+		remove
+	}
+}
+
+limbo_cam_1_target
+{
+	trigger movepos_radar
+	{
+		set
+		{
+			origin "128 2416 376"
+		}
+	}
+	
+	trigger movepos_documents
+	{
+		set
+		{
+			origin "1456 2008 360"
+		}
+	}
+}
+
+limbo_cam_2_target
+{
+	trigger movepos_radar
+	{
+		set
+		{
+			origin "464 448 376"
+		}
+	}
+	
+	trigger movepos_documents
+	{
+		set
+		{
+			origin "-2584 2376 312"
+		}
+	}
+}
+
+limbo_cam_3_target
+{
+	trigger movepos_cp
+	{
+		set
+		{
+			origin "832 80 376"
+		}
+	}
+	
+	trigger movepos_flag
+	{
+		set
+		{
+			origin "-480 -1020 320"
+		}
 	}
 }
