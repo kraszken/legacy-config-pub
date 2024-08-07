@@ -6,10 +6,17 @@ local function removeSpawnShield(clientNum)
 end
 
 function et_ClientSpawn(clientNum, revived)
-    et.gentity_set(clientNum, "ps.powerups", et.PW_INVULNERABLE, 1)
-    et.G_Timer(1000, function()
-        removeSpawnShield(clientNum)
-    end)
+    if not revived then
+        et.gentity_set(clientNum, "ps.powerups", et.PW_INVULNERABLE, 1)
+        et.G_Timer(1000, function()
+            removeSpawnShield(clientNum)
+        end)
+    else
+        et.gentity_set(clientNum, "ps.powerups", et.PW_INVULNERABLE, 1)
+        et.G_Timer(1000, function()
+            removeSpawnShield(clientNum)
+        end)
+    end
 end
 
 function et_InitGame()
