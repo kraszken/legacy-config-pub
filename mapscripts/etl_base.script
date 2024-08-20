@@ -111,23 +111,23 @@ game_manager
 		//
 		//
 		// trigger upper_tunnel enable_route 						// Enable upper route at main tunnel towards North Radar
-		// trigger allied_cabinet_toi allied_cabinets					// Health and Ammo cabinets near Allied spawn. Default enabled
-		// trigger axis_cabinet_toi axis_cabinets						// Health and Ammo cabinets near Axis spawn. Default enabled
-		// trigger allied_cp enable_spawns								// Enable Allied CP spawns. Default disabled
+		trigger allied_cabinet_toi allied_cabinets					// Health and Ammo cabinets near Allied spawn. Default enabled
+		trigger axis_cabinet_toi axis_cabinets						// Health and Ammo cabinets near Axis spawn. Default enabled
+		// trigger allied_cp enable_spawns							// Enable Allied CP spawns. Default disabled
 		//
 		//
 		//====BREWDOG========================================================================
-		// trigger bridge_door enable_cover_and_door				// Enable bridge cover and sliding door near North Radar; NOT COMPATIBLE WITH RADAR OBJECTIVE!
-		// setstate gate_sidepath invisible							// Enable side passage next to tunnel gate
-		setstate documents_ladder invisible							// Add ladder from Axis spawn huts to documents bunker
-		setstate south_radar_corridor invisible					// Open corridor connecting documents bunker to South Radar
-		trigger gate_explosive dynamitable_gate					// Allow gate to be dynamitable
-		// setstate upper_offices invisible							// Open connection between upper 1st Allied spawn, catwalk towards upper offices/CP
+		trigger bridge_door enable_cover_and_door					// Enable bridge cover and sliding door near North Radar; NOT COMPATIBLE WITH RADAR OBJECTIVE!
+		setstate gate_sidepath invisible							// Enable side passage next to tunnel gate
+		// setstate documents_ladder invisible						// Add ladder from Axis spawn huts to documents bunker
+		setstate south_radar_corridor invisible						// Open corridor connecting documents bunker to South Radar
+		trigger gate_explosive dynamitable_gate						// Allow gate to be dynamitable
+		setstate upper_offices invisible							// Open connection between upper 1st Allied spawn, catwalk towards upper offices/CP
 		trigger cp_corridor switch_route							// Switch CP <-> South Radar corridor to Brewdog-like layout
-		trigger upper_offices_flag enable_flag					// Switch from CP to flag
-		// trigger bunker_door enabled_bunker_door					// Add a dynamitable side entrance near documents bunker.
-		trigger axis_brewdog_wobj enable_axis_brewdog_spawn		// Switch Axis spawn from regular to Brewdog location.
-		trigger documents switch_to_documents					// Enable Documents map objective
+		trigger upper_offices_flag enable_flag						// Switch from CP to flag
+		trigger bunker_door enabled_bunker_door						// Add a dynamitable side entrance near documents bunker.
+		trigger axis_brewdog_wobj enable_axis_brewdog_spawn			// Switch Axis spawn from regular to Brewdog location.
+		trigger documents switch_to_documents						// Enable Documents map objective
 		//===================================================================================
 		
 		wait 50
