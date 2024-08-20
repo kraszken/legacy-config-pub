@@ -132,8 +132,6 @@ game_manager
 		
 		wait 50
 		
-		globalaccum 1 trigger_if_equal 1 north_radar initial_announcements
-		globalaccum 3 trigger_if_equal 1 documents initial_announcements
 		globalaccum 1 trigger_if_equal 1 documents remove	// to remove HUD map objective icon on legacy mod
 	}
 
