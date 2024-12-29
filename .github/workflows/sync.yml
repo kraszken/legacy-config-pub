@@ -1,0 +1,73 @@
+name: Sync ETL Stats API Branch
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin
+          git fetch origin etl-stats-api:etl-stats-api
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'GitHub Actions Bot'
+          git config --global user.email 'actions@github.com'
+
+      - name: Sync changes
+        run: |
+          # Create and checkout a new temporary branch from etl-stats-api
+          git checkout etl-stats-api
+          git checkout -b temp-sync-branch
+          
+          # Try to merge main branch
+          if ! git merge origin/main -m "Sync: Merge changes from main branch"; then
+            echo "Merge conflicts detected. Resolving..."
+            
+            # For each conflicted file
+            git diff --name-only --diff-filter=U | while read -r file; do
+              if [[ "$file" =~ ^configs/.*\.config$ ]]; then
+                # For config files, take main's version but remove lua_modules lines
+                git checkout --theirs "$file"
+                echo "Processing config file: $file"
+                grep -v "^[[:space:]]*setl[[:space:]]*lua_modules" "$file" > "$file.tmp"
+                mv "$file.tmp" "$file"
+              else
+                git checkout --theirs "$file"
+              fi
+              git add "$file"
+            done
+            
+            # Complete the merge
+            git commit -m "Sync: Merge changes from main branch (with conflict resolution)"
+          fi
+
+      - name: Push changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git push origin temp-sync-branch:etl-stats-api --force
+
+      - name: Cleanup
+        if: always()
+        run: |
+          git checkout main || true
+          git branch -D temp-sync-branch || true
