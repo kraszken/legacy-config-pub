@@ -1846,7 +1846,7 @@ truck {
                 wm_objective_status         5 0 2
                 wm_objective_status         5 1 1
                 wm_setwinner                1
-                wm_endround
+                // wm_endround
         }
 
         trigger stuck_check        {
