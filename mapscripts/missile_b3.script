@@ -150,7 +150,7 @@ game_manager
 		accum 4 abort_if_not_equal 1
 		wm_setwinner 1
 
-		wm_endround
+		// wm_endround
 	}
 
 	trigger timelimit_hit
@@ -346,7 +346,7 @@ rocketcontrol
 
 		wm_setwinner 1
 
-		wm_endround
+		// wm_endround
 
 		// Allies win
 	}

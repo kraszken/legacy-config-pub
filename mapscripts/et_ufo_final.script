@@ -190,7 +190,7 @@ allied_obj4
 
 		wm_setwinner 1
 
-		wm_endround
+		// wm_endround
 	}
 }
 

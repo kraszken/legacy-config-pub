@@ -85,7 +85,7 @@ game_manager
 	    wm_announce "The Allies have transmitted the Supply Documents!" 
 		wm_setwinner 1
 		wait 1500
-		wm_endround
+		// wm_endround
 	}
 	
 	trigger sound_alarm

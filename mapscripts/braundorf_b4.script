@@ -111,7 +111,7 @@ game_manager
 		wm_setwinner 1
 
 		// End the round
-		wm_endround
+		// wm_endround
 
 		wait 500
 	}

@@ -285,7 +285,7 @@ game_manager
 
 		wait 2400
 
-		wm_endround
+		// wm_endround
 
 		wait 6000
 

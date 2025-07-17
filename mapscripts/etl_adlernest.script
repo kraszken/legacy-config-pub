@@ -98,7 +98,7 @@ documents
 		remapshaderflush
 		
 		//wait 100 // remove wait because comp
-		wm_endround
+		// wm_endround
 	}
 }
 

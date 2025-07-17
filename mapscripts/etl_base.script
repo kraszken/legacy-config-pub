@@ -145,7 +145,7 @@ game_manager
 		
 		wait 1000
 
-		wm_endround
+		// wm_endround
 	}
 }
 

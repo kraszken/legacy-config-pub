@@ -136,7 +136,7 @@ secret_exit
 
 		wm_setwinner 1
 		//wait 500 // no wait at end because comp
-		wm_endround 
+		// wm_endround
 	}
 }
 

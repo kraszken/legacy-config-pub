@@ -106,7 +106,7 @@ trigger checkgame
 	accum 1 abort_if_not_equal 1
 	wm_setwinner 1
 	//wait 100
-	wm_endround
+	// wm_endround
 }
 }
 

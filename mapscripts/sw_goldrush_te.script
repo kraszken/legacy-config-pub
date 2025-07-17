@@ -102,7 +102,7 @@ game_manager
 		wm_objective_status 5 1 1
 
 		//wait 1500
-		wm_endround
+		// wm_endround
 	}
 
 	trigger allies_steal_tank

@@ -93,7 +93,7 @@ game_manager
 		//wait 1500
 
 		// End the round
-		wm_endround
+		// wm_endround
 	}
 }
 

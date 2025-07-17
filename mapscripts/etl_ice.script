@@ -73,7 +73,7 @@ game_manager
 		wm_objective_status 		1 1 2
 
 		//wait 1500 // remove wait because comp
-		wm_endround
+		// wm_endround
 	}
 }
 

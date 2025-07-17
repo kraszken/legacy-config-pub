@@ -119,7 +119,7 @@ game_manager
 		accum 1 abort_if_not_equal 1
 		wm_setwinner 1
 
-		wm_endround
+		// wm_endround
 	}
 }
 
