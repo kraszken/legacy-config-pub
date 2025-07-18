@@ -1,7 +1,7 @@
 {
 name        "Polish ET Legacy Campaign"
 shortname   "polish_campaign"
-maps "supply;sw_goldrush_te"
+maps "supply;sw_goldrush_te;etl_adlernest;radar;bremen_b3;decay_sw;etl_frostbite;missile_b3;braundorf_b4;etl_sp_delivery"
 mapTC       374 185
 type        "wolfmp"
 }
