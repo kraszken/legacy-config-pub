@@ -1,6 +1,6 @@
 {
     "name"          "Polish ET Legacy Campaign",
-    "maps"          "supply sw_goldrush_te etl_adlernest_v4 radar bremen_b3 etl_frostbite_v18 missile_b3 karsiah_te2 decay_sw",
+    "maps"          "supply sw_goldrush_te etl_adlernest_v4 bremen_b3 etl_frostbite_v18 missile_b3 karsiah_te2 decay_sw",
     "type"          "obj",
     "nextcampaign"  "polishcamp"
 }
