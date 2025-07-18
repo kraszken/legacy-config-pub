@@ -1,7 +1,7 @@
 {
-    name                   "Polish ET Legacy Campaign"
-    shortname              "polish_campaign"
-    description            "Super kampania kurwo"
-    maps                   "supply;sw_goldrush_te"
-    type                   "Campaign"
+name        "Polish ET Legacy Campaign"
+shortname   "polish_campaign"
+maps "supply;sw_goldrush_te"
+mapTC       374 185
+type        "wolfmp"
 }
