@@ -1,0 +1,864 @@
+// ---------------------------------------- //
+//                                          //
+// ET:L Special Delivery Mapscript          //
+//                                          //
+// ---------------------------------------- //
+
+
+// ---------------------------------------- //
+// Globalaccums                             //
+// ---------------------------------------- //
+
+// globalaccum 1:
+// 1 - A gold crate has been delivered to loading door 1 (left)
+// 2 - Loading door 1 has been closed once after a gold crate has been delivered
+
+// globalaccum 2:
+// 1 - A gold crate has been delivered to loading door 2 (right)
+// 2 - Loading door 2 has been closed once after a gold crate has been delivered
+
+// ---------------------------------------- //
+
+game_manager
+{
+	spawn
+	{
+		globalaccum 1 set 0
+		globalaccum 2 set 0
+
+		wm_axis_respawntime 30
+		wm_allied_respawntime 20
+		wm_set_round_timelimit 15
+		wm_number_of_objectives 7
+		wm_setwinner 0
+
+		// Objectives:
+		// 1 = East Wall
+		// 2 = West Wall
+		// 3 = Forward bunker
+		// 4 = Allies carrying the first gold
+		// 5 = Door controls built + activated once
+		// 6 = First gold crate secured
+		// 7 = Second gold crate secured
+
+		wm_objective_status 1 0 0
+		wm_objective_status 1 1 0
+		wm_objective_status 2 0 0
+		wm_objective_status 2 1 0
+		wm_objective_status 3 0 0
+		wm_objective_status 3 1 0
+		wm_objective_status 4 0 0
+		wm_objective_status 4 1 0
+		wm_objective_status 5 0 0
+		wm_objective_status 5 1 0
+		wm_objective_status 6 0 0
+		wm_objective_status 6 1 0
+		wm_objective_status 7 0 0
+		wm_objective_status 7 1 0
+
+		wait 150
+
+		setautospawn "The Offices" 0
+		setautospawn "The Train Cars" 1
+		setstate forwardbunker_wo invisible
+
+		remapshader models/etl_sp_delivery/dt_nolight_orange1 models/etl_sp_delivery/dt_nolight
+		remapshader models/etl_sp_delivery/dt_nolight_orange2 models/etl_sp_delivery/dt_nolight
+		remapshaderflush
+
+		wait 1000
+
+		disablespeaker grammy
+		
+		wm_addteamvoiceannounce 0 "radar_axis_entrances_defend"
+		wm_addteamvoiceannounce 0 "radar_axis_bunker_stop"
+		wm_teamvoiceannounce 0 "radar_axis_entrances_defend"
+		wm_teamvoiceannounce 0 "radar_axis_bunker_stop"
+		
+		wm_addteamvoiceannounce 1 "radar_allies_entrances_destroy"
+		wm_addteamvoiceannounce 1 "radar_allies_bunker_capture"
+		wm_teamvoiceannounce 1 "radar_allies_entrances_destroy"
+		wm_teamvoiceannounce 1 "radar_allies_bunker_capture"
+	}
+
+	trigger checkgame
+	{
+		globalaccum 1 abort_if_less_than 1
+		globalaccum 2 abort_if_less_than 1
+
+		wm_announce "Allies have escaped with the Gold!"
+		wm_setwinner 1
+		// wm_endround
+		wait 2000
+		trigger loadingdoor1 close
+		trigger loadingdoor2 close
+	}		
+}
+
+
+// ---------------------------------------- //
+// East and West Walls                      //
+// ---------------------------------------- //
+
+east_wall
+{
+	spawn 
+	{
+		constructible_class 3
+	}
+
+	death 
+	{
+		alertentity east_rubble
+
+		wm_announce "Allies have damaged the East Wall!"
+
+		wm_teamvoiceannounce 0 "general_objdestroy_axis"
+		wm_teamvoiceannounce 1 "general_objdestroy_allies"
+
+		wm_objective_status 1 0 2
+		wm_objective_status 1 1 1
+	}
+}
+
+west_wall
+{
+	spawn 
+	{
+		constructible_class 3
+	}
+
+	death 
+	{
+		alertentity west_rubble
+
+		wm_announce "Allies have damaged the West Wall!"
+
+		wm_teamvoiceannounce 0 "general_objdestroy_axis"
+		wm_teamvoiceannounce 1 "general_objdestroy_allies"
+
+		wm_objective_status 2 0 2
+		wm_objective_status 2 1 1
+	}
+}
+
+
+// ---------------------------------------- //
+// Forward Bunker                           //
+// ---------------------------------------- //
+
+forwardbunkerflag
+{
+	spawn
+	{
+		accum 0 set 0
+	}
+
+	trigger axis_capture
+	{
+		accum 0 abort_if_equal 0
+		accum 0 set 0
+
+		wm_announce "Axis reclaim the Forward Bunker!"
+
+		setstate forwardbunker_wo invisible
+		setautospawn "The Train Cars" 1
+
+		wm_objective_status 3 0 1
+		wm_objective_status 3 1 2
+
+		wm_addteamvoiceannounce 0 "radar_axis_bunker_stop"
+		wm_removeteamvoiceannounce 0 "delivery_axis_controls_stop"
+		wm_teamvoiceannounce 0 "radar_axis_bunker_reclaimed"
+
+		wm_addteamvoiceannounce 1 "radar_allies_bunker_capture"
+		wm_removeteamvoiceannounce 1 "delivery_allies_repair_controls"
+		wm_teamvoiceannounce 1 "radar_allies_bunker_reclaimed"
+	}
+
+	trigger allied_capture
+	{
+		accum 0 abort_if_equal 1
+		accum 0 set 1
+
+		wm_announce "Allies capture the Forward Bunker!"
+
+		setstate forwardbunker_wo default
+		setautospawn "Forward Bunker" 1
+
+		wm_objective_status 3 0 2
+		wm_objective_status 3 1 1
+
+		wm_addteamvoiceannounce 0 "delivery_axis_controls_stop"
+		wm_removeteamvoiceannounce 0 "radar_axis_bunker_stop"
+		wm_removeteamvoiceannounce 0 "radar_axis_entrances_defend"
+		wm_teamvoiceannounce 0 "radar_axis_bunker_captured"
+		wm_teamvoiceannounce 0 "delivery_axis_controls_stop"
+
+		wm_addteamvoiceannounce 1 "delivery_allies_repair_controls"
+		wm_removeteamvoiceannounce 1 "radar_allies_bunker_capture"
+		wm_removeteamvoiceannounce 1 "radar_allies_entrances_destroy"
+		wm_teamvoiceannounce 1 "radar_allies_bunker_captured"
+		wm_teamvoiceannounce 1 "delivery_allies_repair_controls"
+	}
+
+	trigger switchspawns
+	{
+		accum 0 abort_if_equal 1
+		alertentity forwardbunkerspawns
+	}
+}
+
+// ---------------------------------------- //
+// Door Controls                            //
+// ---------------------------------------- //
+
+doorbutton
+{
+	spawn
+	{
+		wait 400
+		trigger doorbutton setup
+
+		constructible_class 2
+	}
+
+	trigger setup
+	{
+		setstate doorbutton_materials default
+		setstate doorbutton_materials_clip default
+		setstate doorbutton_toi default
+		setstate door_lever invisible
+		setstate lever_trigger invisible
+	}
+
+	built final
+	{
+		setstate doorbutton_materials invisible
+		setstate doorbutton_materials_clip invisible
+		setstate doorbutton_toi invisible
+		setstate door_lever default
+		setstate lever_trigger default
+
+		setstate forwardbunkerflag invisible
+		setstate forwardbunker_wo default
+
+		trigger forwardbunkerflag switchspawns
+
+		setautospawn "Forward Bunker" 1
+
+		wm_announce "Allies have secured the forward bunker!"
+		wm_announce "The Door Controls have been constructed!"
+		wm_announce "The Vault is now open!"
+
+		trigger golddoor1 open
+
+		wm_objective_status 5 0 2
+		wm_objective_status 5 1 1
+
+		wm_addteamvoiceannounce 0 "goldrush_axis_gold_defend"
+		wm_removeteamvoiceannounce 0 "radar_axis_bunker_stop"
+		wm_removeteamvoiceannounce 0 "radar_axis_entrances_defend"
+		wm_removeteamvoiceannounce 0 "delivery_axis_controls_stop"
+		wm_teamvoiceannounce 0 "construction_completed"
+		wm_teamvoiceannounce 0 "goldrush_axis_gold_defend"
+
+
+		wm_addteamvoiceannounce 1 "goldrush_allies_gold_get"
+		wm_removeteamvoiceannounce 1 "radar_allies_entrances_destroy"
+		wm_removeteamvoiceannounce 1 "radar_allies_bunker_capture"
+		wm_removeteamvoiceannounce 1 "delivery_allies_repair_controls"
+		wm_teamvoiceannounce 1 "construction_completed"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold_get"
+	}
+
+	decayed final
+	{
+		setstate doorbutton_materials default
+		setstate doorbutton_materials_clip default
+	}
+}
+
+door_lever
+{
+	trigger up
+	{
+		playsound sound/movers/switches/butn2.wav
+		gotomarker door_lever_up 10 wait
+	}
+	trigger down
+	{
+		playsound sound/movers/switches/butn2.wav
+		gotomarker door_lever_down 10 wait
+	}
+}
+
+lever_trigger
+{
+	spawn
+	{
+		accum 1 set 0 // 0 = doors closed, 1 = doors open
+	}
+
+	activate allies
+	{
+		accum 1 abort_if_equal 1
+		accum 1 set 1
+		trigger door_lever up
+		trigger loadingdoor1 open
+		trigger loadingdoor2 open
+		setstate lever_trigger invisible
+
+		alertentity door_alarm
+		wm_announce "The Loading Doors are opening!"
+
+		wait 2500
+		setstate lever_trigger default
+	}
+
+	activate axis
+	{
+		accum 1 abort_if_equal 0
+		accum 1 set 0
+		trigger door_lever down
+		trigger loadingdoor1 close
+		trigger loadingdoor2 close
+		setstate lever_trigger invisible
+
+		alertentity door_alarm
+		wm_announce "The Loading Doors are closing!"
+
+		wait 2500
+		setstate lever_trigger default
+	}
+}
+
+
+// ---------------------------------------- //
+// Loading Doors                            //
+// ---------------------------------------- //
+
+loadingdoor1
+{
+	trigger open
+	{
+		// Don't open if gold has been delivered
+		globalaccum 1 abort_if_greater_than 1
+
+		wait 500
+		playsound sound/movers/misc/big_gate1.wav
+
+		wait 400
+		playsound sound/movers/misc/big_gate2.wav looping
+		alertentity loadingdoor1_light
+		remapshader models/etl_sp_delivery/dt_nolight_orange1 models/etl_sp_delivery/dt_nolight_orange1
+		remapshaderflush
+		gotomarker loadingdoor1_open 32 wait
+
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav
+	}
+	
+	trigger close
+	{
+		// Don't do redundant closing if it's been permaclosed
+		globalaccum 1 abort_if_equal 2
+
+		wait 500
+		playsound sound/movers/misc/big_gate1.wav
+
+		wait 400
+		playsound sound/movers/misc/big_gate2.wav looping
+		gotomarker loadingdoor1_close 32 wait
+
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav
+		alertentity loadingdoor1_light
+		remapshader models/etl_sp_delivery/dt_nolight_orange1 models/etl_sp_delivery/dt_nolight
+		remapshaderflush
+
+		// Close the door permanently if the gold has been delivered
+		globalaccum 1 trigger_if_equal 1 loadingdoor1 permaclose
+	}
+
+	trigger permaclose
+	{
+		globalaccum 1 set 2
+	}
+}
+
+loadingdoor2
+{
+	trigger open
+	{
+		// Don't open if gold has been delivered
+		globalaccum 2 abort_if_greater_than 1
+
+		wait 500
+		playsound sound/movers/misc/big_gate1.wav
+
+		wait 400
+		playsound sound/movers/misc/big_gate2.wav looping
+		alertentity loadingdoor2_light
+		remapshader models/etl_sp_delivery/dt_nolight_orange2 models/etl_sp_delivery/dt_nolight_orange2
+		remapshaderflush
+		gotomarker loadingdoor2_open 32 wait
+
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav
+	}
+	
+	trigger close
+	{
+		// Don't do redundant closing if it's been permaclosed
+		globalaccum 2 abort_if_equal 2
+
+		wait 500
+		playsound sound/movers/misc/big_gate1.wav
+
+		wait 400
+		playsound sound/movers/misc/big_gate2.wav looping
+		gotomarker loadingdoor2_close 32 wait
+
+		stopsound
+		playsound sound/movers/misc/big_gate3.wav
+		alertentity loadingdoor2_light
+		remapshader models/etl_sp_delivery/dt_nolight_orange2 models/etl_sp_delivery/dt_nolight
+		remapshaderflush
+		
+		// Close the door permanently if the gold has been delivered
+		globalaccum 2 trigger_if_equal 1 loadingdoor2 permaclose
+	}
+
+	trigger permaclose
+	{
+		globalaccum 2 set 2
+	}
+}
+
+
+// ---------------------------------------- //
+// Vault Doors                              //
+// ---------------------------------------- //
+
+golddoor1
+{
+	trigger open
+	{
+		wait 500
+
+		playsound sound/movers/doors/door5_open.wav
+		gotomarker golddoor1_open 32 wait
+	}
+}
+
+golddoor2
+{
+	trigger open
+	{
+		wait 500
+
+		playsound sound/movers/doors/door5_open.wav
+		gotomarker golddoor2_open 32 wait
+	}
+}
+
+
+// ---------------------------------------- //
+// Gold Crates                              //
+// ---------------------------------------- //
+
+axis_gold1
+{
+	spawn
+	{
+		wait 200
+		setstate axis_gold1_captured invisible
+	}
+
+	trigger stolen
+	{
+		wm_announce "The Allies have stolen the first gold crate!"
+
+		setstate axis_gold_cm_marker invisible
+
+		wm_objective_status 4 0 2
+		wm_objective_status 4 1 1
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold1_taken"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold1_taken"
+	}
+
+	trigger returned
+	{
+		setstate axis_gold_cm_marker default
+
+		wm_announce "The Axis have intercepted the stolen gold crate!"
+
+		wm_objective_status 4 0 1
+		wm_objective_status 4 1 2
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold1_returned"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold1_returned"
+	}
+
+	trigger captured
+	{
+		setstate axis_gold_cm_marker default
+		
+		wait 200
+		trigger golddoor2 open
+
+		wm_announce "The Allies have secured the first gold crate!"
+
+		wm_objective_status 6 0 2
+		wm_objective_status 6 1 1
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold1_secured"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold1_secured"
+	}
+}
+
+axis_gold2
+{
+	spawn
+	{
+		wait 200
+		setstate axis_gold2_captured invisible
+	}
+
+	trigger stolen
+	{
+		setstate axis_gold_cm_marker invisible
+
+		wm_announce "The Allies have stolen the second gold crate!"
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold2_taken"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold2_taken"
+	}
+
+	trigger returned
+	{
+		setstate axis_gold_cm_marker default
+
+		wm_announce "The Axis have intercepted the stolen gold crate!"
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold2_returned"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold2_returned"
+	}
+
+	trigger captured
+	{
+		wm_announce "The Allies have secured the second gold crate!"
+
+		wm_objective_status 7 0 2
+		wm_objective_status 7 1 1
+
+		wm_teamvoiceannounce 0 "goldrush_axis_gold2_secured"
+		wm_teamvoiceannounce 1 "goldrush_allies_gold2_secured"
+	}
+}
+
+truckbed1_trigger
+{
+	death
+	{
+		globalaccum 1 set 1
+
+		setstate axis_gold1_red invisible
+		setstate axis_gold1_captured default
+
+		trigger game_manager checkgame
+
+		remove
+	}
+}
+
+truckbed2_trigger
+{
+	death
+	{
+		globalaccum 2 set 1
+
+		setstate axis_gold2_red invisible
+		setstate axis_gold2_captured default
+
+		trigger game_manager checkgame
+
+		remove
+	}
+}
+
+
+// ---------------------------------------- //
+// Elevator                                 //
+// ---------------------------------------- //
+
+elevator
+{
+	spawn
+	{
+		wait 200
+		alertentity elevator_toplight
+	}
+
+	trigger move_up
+	{
+		gotomarker elevator_uppos 100 wait
+	}
+
+	trigger move_down
+	{
+		gotomarker elevator_downpos 100 wait
+	}
+}
+
+elevator_trigger
+{
+	trigger activate
+	{
+		trigger bottom_l_door close
+		trigger bottom_r_door close
+
+		wait 700
+
+		trigger eldoor_l closelow
+		trigger eldoor_r closelow
+
+		wait 2000
+
+		trigger eldoor_l move_up
+		trigger eldoor_r move_up
+		trigger elevator move_up
+
+		wait 2500
+
+
+		trigger top_l_door open
+		trigger top_r_door open
+
+		wait 700
+
+		alertentity elevator_speaker
+
+		trigger eldoor_l openhigh
+		trigger eldoor_r openhigh
+
+		wait 1000
+
+
+		wait 3000
+
+		trigger top_l_door close
+		trigger top_r_door close
+
+		wait 700
+
+		trigger eldoor_l closehigh
+		trigger eldoor_r closehigh
+
+		wait 2000
+
+		trigger eldoor_l move_down
+		trigger eldoor_r move_down
+		trigger elevator move_down
+
+		wait 2500
+
+		trigger bottom_l_door open
+		trigger bottom_r_door open
+
+		wait 700
+
+		trigger eldoor_l openlow
+		trigger eldoor_r openlow
+	}
+
+}
+
+eldoor_l
+{
+	spawn
+	{
+		wait 200
+		gotomarker eldoor_l_openlow 500 wait
+	}
+
+	trigger openlow
+	{
+		gotomarker eldoor_l_openlow 24 wait
+	}
+
+	trigger closelow
+	{
+		gotomarker eldoor_l_closedlow 24 wait
+	}
+
+	trigger move_up
+	{
+		gotomarker eldoor_l_closedhigh 100 wait
+	}
+
+	trigger move_down
+	{
+		gotomarker eldoor_l_closedlow 100 wait
+	}
+
+	trigger openhigh
+	{
+		gotomarker eldoor_l_openhigh 24 wait
+	}
+
+	trigger closehigh
+	{
+		gotomarker eldoor_l_closedhigh 24 wait
+	}
+}
+
+eldoor_r
+{
+	spawn
+	{
+		wait 200
+		gotomarker eldoor_r_openlow 500 wait
+	}
+
+	trigger openlow
+	{
+		gotomarker eldoor_r_openlow 24 wait
+	}
+
+	trigger closelow
+	{
+		gotomarker eldoor_r_closedlow 24 wait
+	}
+
+	trigger move_up
+	{
+		gotomarker eldoor_r_closedhigh 100 wait
+	}
+
+	trigger move_down
+	{
+		gotomarker eldoor_r_closedlow 100 wait
+	}
+
+	trigger openhigh
+	{
+		gotomarker eldoor_r_openhigh 24 wait
+	}
+
+	trigger closehigh
+	{
+		gotomarker eldoor_r_closedhigh 24 wait
+	}
+
+
+}
+
+bottom_l_door
+{
+	spawn
+	{
+		wait 200
+		gotomarker bottom_l_door_open 500 wait
+	}
+
+	trigger open
+	{
+		gotomarker bottom_l_door_open 24 wait
+	}
+
+	trigger close
+	{
+		gotomarker bottom_l_door_closed 24 wait
+	}
+}
+
+bottom_r_door
+{
+	spawn
+	{
+		wait 200
+		gotomarker bottom_r_door_open 500 wait
+	}
+
+	trigger open
+	{
+		gotomarker bottom_r_door_open 24 wait
+	}
+
+	trigger close
+	{
+		gotomarker bottom_r_door_closed 24 wait
+	}
+}
+
+top_l_door
+{
+	trigger open
+	{
+		gotomarker top_l_door_open 24 wait
+	}
+
+	trigger close
+	{
+		gotomarker top_l_door_closed 24 wait
+	}
+}
+
+top_r_door
+{
+	trigger open
+	{
+		gotomarker top_r_door_open 24 wait
+	}
+	
+	trigger close
+	{
+		gotomarker top_r_door_closed 24 wait
+	}
+}
+
+
+// ---------------------------------------- //
+// Gramophone                               //
+// ---------------------------------------- //
+
+grammy
+{
+	spawn
+	{
+		accum 1 set 0 // 0 = off, 1 = on
+	}
+
+	activate
+	{
+		setstate grammy_trigger invisible
+		trigger grammy grammy_on
+		trigger grammy grammy_off
+	}
+
+	trigger grammy_on
+	{
+		accum 1 abort_if_equal 1
+		resetscript
+		accum 1 set 1
+		togglespeaker grammy_scratch
+		wait 430
+		togglespeaker grammy
+		wait 2000
+		setstate grammy_trigger default
+	}
+
+	trigger grammy_off
+	{
+		accum 1 abort_if_equal 0
+		resetscript
+		accum 1 set 0
+		togglespeaker grammy_scratch
+		togglespeaker grammy
+		wait 2000
+		setstate grammy_trigger default
+	}
+}
