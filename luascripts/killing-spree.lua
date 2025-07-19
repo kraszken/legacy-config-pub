@@ -89,7 +89,9 @@ function announceSpree(clientNumber, guid)
         local name = getName(clientNumber)
         local message = string.format(announcement.message, name)
 
-        et.G_globalSound(announcement.sound)
+        -- Uncomment the next line if you want to play a sound for the announcement
+        -- Note: Ensure the sound file exists in the specified path.
+        -- et.G_globalSound(announcement.sound)
         et.trap_SendServerCommand(BROADCAST, "cpm \"" .. message .. "\n\"")
     end
 end
