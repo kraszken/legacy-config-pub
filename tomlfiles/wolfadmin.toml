@@ -25,7 +25,7 @@ admin = "admin.log"
 
 [omnibot]
 minbots = -1
-maxbots = -1
+maxbots = 4
 
 [admin]
 history = 1
