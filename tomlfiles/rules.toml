@@ -1,0 +1,19 @@
+[[rule]]
+shortcut = "tk"
+rule     = "^1NO ^7teamkilling^9!"
+
+[[rule]]
+shortcut = "tb"
+rule     = "^1NO ^7teambleeding^9!"
+
+[[rule]]
+shortcut = "advert"
+rule     = "^7Do ^1NOT ^7advertise^9!"
+
+[[rule]]
+shortcut = "level"
+rule     = "^7Do ^1NOT ^9ask for ^7admin levels^9!"
+
+[[rule]]
+shortcut = "bug"
+rule     = "^7Do ^1NOT ^9use ^7map bugs^9/^7exploits^9!"
