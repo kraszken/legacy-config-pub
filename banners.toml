@@ -1,0 +1,16 @@
+[[banner]]
+welcome = false
+text    = "This server is running WolfAdmin."
+
+[[banner]]
+welcome = false
+text    = "Type ^7/wolfadmin ^9for more information."
+
+[[banner]]
+welcome = false
+info    = false
+text    = "Type ^7!help ^9to view your available commands."
+
+[[banner]]
+info    = false
+text    = "Remember to have fun!"
