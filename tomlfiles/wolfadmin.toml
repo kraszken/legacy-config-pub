@@ -24,7 +24,7 @@ chat = "chat.log"
 admin = "admin.log"
 
 [omnibot]
-minbots = 0
+minbots = 3
 maxbots = 4
 
 [admin]
