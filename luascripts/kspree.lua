@@ -218,7 +218,7 @@ function readStats(file)
 	else
 		local filestr = et.trap_FS_Read( fd, len )
 		et.trap_FS_FCloseFile( fd )
-		for map,frags,zwiebel,naim in string.gfind(filestr,"[^%#]([%_%w]*)%;(%d*)%;(%d*)%;([^%\n]*)") do
+		for map,frags,zwiebel,naim in filestr:gmatch("[^%#]([%_%w]*)%;(%d*)%;(%d*)%;([^%\n]*)") do
 			alltime_stats[map] = {
 									tonumber(frags),
 									tonumber(zwiebel),
@@ -243,8 +243,8 @@ function readRecords(file)
 	local exp_diff = now - records_expire
 	local filestr = et.trap_FS_Read( fd, len )
 	et.trap_FS_FCloseFile( fd )
-	for guid,multi,mega,ultra,monster,ludic,kills,name,first,last in string.gfind(filestr,
-				"[^%#](%x+)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;([^;]*)%;(%d*)%;([^%\n]*)") do
+	for guid,multi,mega,ultra,monster,ludic,kills,name,first,last in filestr:gmatch(
+            "[^%#](%x+)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;(%d*)%;([^;]*)%;(%d*)%;([^%\n]*)") do
 		local seen = tonumber(last)
 		if (records_expire == 0) or (exp_diff < seen) then
 		   srv_records[guid] = {
@@ -280,7 +280,7 @@ function et_Print(text)
     			end
                 local longest = ""
                 local max     = findMaxKSpree()
-                if table.getn(max) == 3 then
+                if #max == 3 then
                     if kmap_record then
                         longest = " ^"..kspree_color.."This is a New map record!"
                         saveStats(kspree_cfg, alltime_stats)
@@ -381,7 +381,7 @@ function et_Obituary(victim, killer, mod)
 
     		if not allow_spree_sk then
             	local max = findMaxKSpree()
-            	if table.getn(max) == 3 then
+            	if #max == 3 then
             		if killing_sprees[victim] > max[1] then
             		sayClients(kspree_pos, string.format("^%sWhat a pity! ^7%s^%s killed himself. This would have been a new ^qspree record ^%s!",
             						kspree_color, playerName(victim), kspree_color, kspree_color))
@@ -416,12 +416,12 @@ function et_Obituary(victim, killer, mod)
             if srv_record and guid ~= "" then
         	-- guid;multi;mega;ultra;monster;ludicrous;revive;nick;firstseen;lastseen
                 if type(srv_records[guid]) ~= "table" then
-                    srv_records[guid] = { 0, 0, 0, 0, 0, 0, playerName(killer), tonumber(os.date("%s")), 0 }
+                    srv_records[guid] = { 0, 0, 0, 0, 0, 0, playerName(killer), tonumber(os.time()), 0 }
                 elseif table.getn(srv_records[guid]) ~= 9 then
-                    srv_records[guid] = { 0, 0, 0, 0, 0, 0, playerName(killer), tonumber(os.date("%s")), 0 }
+                    srv_records[guid] = { 0, 0, 0, 0, 0, 0, playerName(killer), tonumber(os.time()), 0 }
                 end
                 srv_records[guid][6] = srv_records[guid][6] + 1
-                srv_records[guid][9] = tonumber(os.date("%s"))
+                srv_records[guid][9] = tonumber(os.time())
                 if record_last_nick or (srv_records[guid][7] == nil) then
                     srv_records[guid][7] = playerName(killer)
                 end
@@ -476,11 +476,11 @@ function checkKSpreeEnd(id, killer, normal_kill)
         if kmax_id == id and killing_sprees[id] == kmax_spree then
             local max = findMaxKSpree()
             if table.getn(max) == 3 and kmax_spree > max[1] then
-                alltime_stats[mapName()] = { kmax_spree, os.date("%s"), m_name }
+                alltime_stats[mapName()] = { kmax_spree, os.time(), m_name }
                 kmap_record = true
                 krecord     = true
             elseif table.getn(max) == 0 then
-                alltime_stats[mapName()] = { kmax_spree, os.date("%s"), m_name }
+                alltime_stats[mapName()] = { kmax_spree, os.time(), m_name }
                 kmap_record = true
                 krecord     = true
             end
