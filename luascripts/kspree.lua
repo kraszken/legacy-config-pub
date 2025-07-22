@@ -239,7 +239,7 @@ function readRecords(file)
 		et.G_Printf("rspree.lua: readRecords(): %d ms\n", et.trap_Milliseconds() - func_start)
 	end
 	local guid,multi,mega,ultra,monster,ludic,kills,name,first,last
-	local now = tonumber(os.date("%s"))
+	local now = tonumber(os.time())
 	local exp_diff = now - records_expire
 	local filestr = et.trap_FS_Read( fd, len )
 	et.trap_FS_FCloseFile( fd )
