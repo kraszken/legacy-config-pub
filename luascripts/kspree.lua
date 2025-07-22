@@ -202,12 +202,10 @@ function saveStats(file, list)
     end
     local head = string.format("# %s, written %s\n", file, os.date())
     et.trap_FS_Write(head, string.len(head), fd)
-    table.foreach(list,
-        function (first, arr)
-            local line = first .. ";".. table.concat(arr, ";").."\n"
-            et.trap_FS_Write(line, string.len(line), fd)
-        end
-    )
+    for first, arr in pairs(list) do
+        local line = first .. ";".. table.concat(arr, ";").."\n"
+        et.trap_FS_Write(line, string.len(line), fd)
+    end
     et.trap_FS_FCloseFile(fd)
 end
 
@@ -508,7 +506,7 @@ end
 
 function checkKSprees(id)
     if killing_sprees[id] ~= 0 then
-        if math.mod(killing_sprees[id], 5) == 0 then
+        if killing_sprees[id] % 5 == 0 then
             local spree_id = killing_sprees[id]
             local spree = K_Sprees[killing_sprees[id]]
             if killing_sprees[id] > 35 then
@@ -560,14 +558,13 @@ function checkKSprees(id)
 end
 
 function et_RunFrame(levelTime)
-	if math.mod(levelTime, 500) ~= 0 then return end
+	if levelTime % 500 ~= 0 then return end
 	local ltm = et.trap_Milliseconds()
 	gamestate = tonumber(et.trap_Cvar_Get("gamestate"))
 	if gamestate == 0 then
 	-- wait before display multi/mega/monster/ludicrous-kill AND display highest
 	-- wait_table[id] = {lvltime, 2}
-	table.foreach(wait_table,
-            function(id, arr)
+	for id, arr in pairs(wait_table) do
 		 local guid = getGuid(id)
 		 local m_name = playerName(id)
          local startpause = tonumber(arr[1])
@@ -629,7 +626,7 @@ function et_RunFrame(levelTime)
          	end
          	wait_table[id] = nil
          end
-    end) --end table.foreach
+    end -- end table.foreach
     end -- gamestate
 end
 
@@ -665,12 +662,11 @@ function et_ClientCommand(id, command)
 
             local all_msg = ""
             local all_max = { 0, 0, nil }
-            table.foreach(alltime_stats,
-                          function (map, arr)
+            for map, arr in pairs(alltime_stats) do
                                 if arr[1] > all_max[1] then
                                     all_max = arr
                                 end
-                          end)
+                          end
             if all_max[3] ~= nil then
                 all_msg = string.format(" ^1[^7overall: %s^1 (^7%d^1) @ %s^1]",
                                     all_max[3], all_max[1], os.date(date_fmt, all_max[2]))
@@ -789,8 +785,7 @@ function recordMessage ()
     local kill_rec  = { 0, nil }
 
 	--multikill
-    table.foreach(srv_records,
-        function (guid, arr)
+    for guid, arr in pairs(srv_records) do
             if arr[1] > multi_rec[1] then
                 multi_rec = { arr[1], arr[7] }
             end
@@ -810,7 +805,7 @@ function recordMessage ()
                 kill_rec = { arr[6], arr[7] }
             end
 
-        end)
+        end
 
     if multi_rec[2] ~= nil then
         table.insert(rec_arr,
@@ -850,12 +845,11 @@ function recordMessage ()
 
     if table.getn(rec_arr) ~= 0 then
         local oldest = 2147483647 -- 2^31 - 1
-        table.foreach(srv_records,
-            function(guid, arr)
-                if arr[8] < oldest then
-                    oldest = arr[8]
-                end
-            end)
+        for guid, arr in pairs(srv_records) do
+            if arr[8] < oldest then
+                oldest = arr[8]
+            end
+        end
         return("^7Top killers since "..os.date(date_fmt, oldest).. " are: "..table.concat(rec_arr, ", "))
     else
         return("^7no records found :(")
@@ -901,11 +895,9 @@ function et_ConsoleCommand()
         return(1)
     elseif cmd == "kspreesall" then
         et.G_Printf("^7Alltime killing sprees:\n")
-        table.foreach(alltime_stats,
-            function (map, arr)
-			et.G_Printf("kspreesall: %s: %s^7 with %d kills @%s\n", map, arr[3], arr[1], os.date(date_fmt, arr[2]))
-            end
-        )
+        for map, arr in pairs(alltime_stats) do
+            et.G_Printf("kspreesall: %s: %s^7 with %d kills @%s\n", map, arr[3], arr[1], os.date(date_fmt, arr[2]))
+        end
         et.G_Printf("^7Alltime killing sprees END\n")
         return(1)
     elseif cmd == "kspreerecords" then
