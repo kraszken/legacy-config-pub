@@ -27,7 +27,7 @@ kspree_color  = "8"
 kspree_cfg    = "killingspree.txt"
 record_cfg   = "kspree-records.txt"
 
-date_fmt     = "%Y-%m-%d, %H:%M:%S"
+date_fmt     = "%d-%m-%Y, %H:%M:%S"
 
 kmultitk_announce	= true			-- announce multi TK
 kmulti_announce 	= true			-- announce multi/mega/ultra....kill
@@ -153,7 +153,8 @@ end
 
 function sayClients(pos, msg)
     et.G_Printf("kspree.lua: sayClients('%s', '%s')\n", pos, msg)
-    et.trap_SendServerCommand(-1, pos.." \""..msg.."^7\"\n")
+    -- Send to global chat (use "chat" instead of "cp" or "print")
+    et.trap_SendServerCommand(-1, string.format('chat -1 "%s^7"', msg))
 end
 
 -- printf wrapper for debugging
@@ -687,22 +688,26 @@ function et_ClientCommand(id, command)
     end -- et.trap_Argv(0) == "say"
 
 	if et.trap_Argv(0) == "vsay" then
-		if not great_shot then return end
-		local vsaystring = ParseString(et.trap_Argv(1))
-		if string.lower(vsaystring[1]) == "greatshot" and last_killer[id] ~= nil and #vsaystring < 2 then
-			if (et.trap_Milliseconds() - tonumber(last_killer[id][2])) < great_shot_time then
-				local vsaymessage = "Great shot, ^7"..last_killer[id][1].."^r!"
+        if not great_shot then return end
+        local vsaystring = ParseString(et.trap_Argv(1))
+        if string.lower(vsaystring[1]) == "greatshot" and last_killer[id] ~= nil and #vsaystring < 2 then
+            if (et.trap_Milliseconds() - tonumber(last_killer[id][2])) < great_shot_time then
+                local vsaymessage = "Great shot, ^7"..last_killer[id][1].."^r!"
 
-   				et.trap_SendServerCommand(-1, "vchat 0 "..id.." 50 GreatShot "..math.random(1, 2).." \""..vsaymessage.."\"")
-   				if not great_shot_repeat then
-   					last_killer[id] = nil
-   				end
-				return(1)
-			else
-    			return(0)
-			end
-
-    	end -- end lower
+                -- More robust version:
+                et.trap_SendServerCommand(-1, string.format('vchat 0 %d 50 GreatShot %d "%s"', 
+                    id, 
+                    math.random(1, 2), 
+                    vsaymessage)
+                
+                if not great_shot_repeat then
+                    last_killer[id] = nil
+                end
+                return(1)
+            else
+                return(0)
+            end
+        end -- end lower
     end -- vsay
 
 	if et.trap_Argv(0) == "vsay_team" then
@@ -713,7 +718,13 @@ function et_ClientCommand(id, command)
 			    local vsaymessage = "^5Sorry, ^7"..last_tk[id][1].."^5!"
 				local ppos = et.gentity_get(id,"r.currentOrigin")
 				local TKer_team = et.gentity_get(id, "sess.sessionTeam")
-				local cmd = string.format("vtchat 0 %d 50 Sorry %d %d %d %d \"%s\"", id, ppos[1], ppos[2], ppos[3], math.random(1,3), vsaymessage)
+				local cmd = string.format("vtchat 0 %d 50 Sorry %d %d %d %d \"%s\"", 
+                         id, 
+                         math.floor(ppos[1]),  -- Convert to integer
+                         math.floor(ppos[2]),  -- Convert to integer
+                         math.floor(ppos[3]),  -- Convert to integer
+                         math.random(1,3), 
+                         vsaymessage)
 				for t=0, sv_maxclients-1, 1 do
         			if et.gentity_get(t, "sess.sessionTeam") == TKer_team then
 				   		et.trap_SendServerCommand(t, cmd)
