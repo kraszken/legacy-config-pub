@@ -698,7 +698,7 @@ function et_ClientCommand(id, command)
                 et.trap_SendServerCommand(-1, string.format('vchat 0 %d 50 GreatShot %d "%s"', 
                     id, 
                     math.random(1, 2), 
-                    vsaymessage)
+                    vsaymessage))
                 
                 if not great_shot_repeat then
                     last_killer[id] = nil
