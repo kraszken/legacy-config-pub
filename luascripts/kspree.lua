@@ -158,7 +158,8 @@ end
 
 -- printf wrapper for debugging
 function et.G_Printf(...)
-    et.G_Print(string.format(unpack(arg)))
+    local args = {...}
+    et.G_Print(string.format(table.unpack(args)))
 end
 
 function et.G_ClientSound(clientnum, soundfile)
