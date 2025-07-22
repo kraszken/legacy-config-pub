@@ -153,8 +153,8 @@ end
 
 function sayClients(pos, msg)
     et.G_Printf("kspree.lua: sayClients('%s', '%s')\n", pos, msg)
-    -- Proper global chat format
-    et.trap_SendServerCommand(-1, string.format('chat -1 "%s^7"', msg))
+    -- Force correct command structure
+    et.trap_SendServerCommand(-1, "chat \"" .. msg .. "^7\"")
 end
 
 -- printf wrapper for debugging
