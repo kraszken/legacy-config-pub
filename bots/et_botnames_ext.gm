@@ -23,16 +23,6 @@ global AlliedBotPrefix = BotPrefix;
 /////////////////////////////////////////////////////////////////////
 // Axis Bots
 
-// Covert Ops
-t = { class=CLASS.COVERTOPS, weapon=0, profile="" };
-AxisBots["Walter"] = t;
-AxisBots["Fred"] = t;
-AxisBots["Morgan"] = t;
-AxisBots["Lawrence"] = t;
-AxisBots["Richard"] = t;
-AxisBots["Michael"] = t;
-AxisBots["Brad"] = t;
-
 // Engineers
 t = { class=CLASS.ENGINEER, weapon=0, profile="" };
 AxisBots["George"] = t;
@@ -63,28 +53,9 @@ AxisBots["Newbie"] = t;
 AxisBots["Cledus"] = t;
 AxisBots["Chimichanga"] = t;
 
-// Soldiers
-t = { class=CLASS.SOLDIER, weapon=0, profile="" };
-AxisBots["Razor"] = t;
-AxisBots["Tanz"] = t;
-AxisBots["Vic"] = t;
-AxisBots["Malin"] = t;
-AxisBots["Thor"] = t;
-AxisBots["Grog"] = t;
-AxisBots["Drago"] = t;
 
 /////////////////////////////////////////////////////////////////////
 // Allied Bots
-
-// Covert Ops
-t = { class=CLASS.COVERTOPS, weapon=0, profile="" };
-AlliedBots["Wanhaomena"] = t;
-AlliedBots["Słanidius"] = t;
-AlliedBots["Wens"] = t;
-AlliedBots["Brohn"] = t;
-AlliedBots["Ivor"] = t;
-AlliedBots["Gordac"] = t;
-AlliedBots["Bortack"] = t;
 
 // Engineers
 t = { class=CLASS.ENGINEER, weapon=0, profile="" };
@@ -115,16 +86,6 @@ AlliedBots["Kaolin"] = t;
 AlliedBots["Nandet"] = t;
 AlliedBots["Nundak"] = t;
 AlliedBots["Ryver"] = t;
-
-// Soldiers
-t = { class=CLASS.SOLDIER, weapon=0, profile="" };
-AlliedBots["Relołd"] = t;
-AlliedBots["Najt"] = t;
-AlliedBots["Amadi"] = t;
-AlliedBots["Zarna"] = t;
-AlliedBots["PillowPants"] = t;
-AlliedBots["ListerFiend"] = t;
-AlliedBots["Ilikechocmilk"] = t;
 
 /////////////////////////////////////////////////////////////////////
 // Overflow bots - used if no bots left for team / class desired
