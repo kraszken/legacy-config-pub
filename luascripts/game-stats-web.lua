@@ -2235,6 +2235,50 @@ function SaveStats()
     log("SaveStats completed")
 end
 
+local function handle_gamestate_change(new_gamestate)
+    if new_gamestate == current_gamestate then
+        return
+    end
+
+    local old_gamestate = current_gamestate
+    current_gamestate = new_gamestate
+
+    if new_gamestate == et.GS_PLAYING and old_gamestate ~= et.GS_PLAYING then
+        round_start_time = trap_Milliseconds()
+        rename_in_progress = {}
+
+        if configuration.force_names then
+            log("Game starting - loading data from file")
+            loadTeamDataFromFile()
+        end
+
+    elseif new_gamestate == et.GS_WARMUP_COUNTDOWN and old_gamestate == et.GS_WARMUP then
+        log("Warmup countdown - preparing for match")
+        
+        -- Generate a simple match ID based on timestamp
+        cached_match_id = os.date("%Y%m%d_%H%M%S")
+        log(string.format("Generated match ID: %s", cached_match_id))
+        
+        if configuration.force_names then
+            validateAllPlayerNames()
+        end
+
+    elseif new_gamestate == et.GS_INTERMISSION and old_gamestate == et.GS_PLAYING then
+        round_end_time = trap_Milliseconds()
+        log("Round ended - clearing cached data")
+
+        if configuration.force_names then
+            wipeTeamDataFile()
+            team_data_cache = nil
+            team_data_fetched = false
+            team_names_cache.alpha_teamname = nil
+            team_names_cache.beta_teamname = nil
+            team_names_cache.last_updated = 0
+            cached_match_id = nil
+        end
+    end
+end
+
 function et_RunFrame(gameFrameLevelTime)
     local gamestate = tonumber(et.trap_Cvar_Get("gamestate"))
     handle_gamestate_change(gamestate)
@@ -2292,6 +2336,21 @@ local function validateConfiguration()
         return false, "No common buildables configuration loaded"
     end
     
+    return true
+end
+
+
+local function initializeServerInfo()
+    -- Get server IP and port from serverinfo
+    local serverinfo = et.trap_GetConfigstring(et.CS_SERVERINFO)
+    server_ip = Info_ValueForKey(serverinfo, "sv_hostname")
+    server_port = Info_ValueForKey(serverinfo, "sv_port")
+    
+    if not server_port or server_port == "" then
+        server_port = "27960"  -- Default ET port
+    end
+    
+    log(string.format("Server info: %s:%s", server_ip, server_port))
     return true
 end
 
