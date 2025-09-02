@@ -1,4 +1,5 @@
 # Basic Configuration
+[configuration]
 json_output_enabled = true
 json_output_directory = "/legacy/homepath/legacy/stats/json_output/"
 json_retention_days = 30
