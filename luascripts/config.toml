@@ -1,7 +1,7 @@
 # Basic Configuration
-sqlite_enabled = true
-sqlite_filepath = "et_stats.db"
-sqlite_retention_days = 30
+json_output_enabled = true
+json_output_directory = "/legacy/homepath/legacy/stats/json_output/"
+json_retention_days = 30
 log_filepath = "/legacy/homepath/legacy/stats/game_stats.log"
 logging_enabled = true
 

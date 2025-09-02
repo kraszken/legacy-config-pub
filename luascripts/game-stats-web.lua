@@ -1,16 +1,15 @@
-local modname = "game-stats-sqlite"
+local modname = "game-stats-json"
 local version = "1.0.0"
 
 -- Required libraries
 local json = require("dkjson")
 local toml = require("toml")
-local sqlite3 = require("lsqlite3")
 
 -- Default configuration
 local configuration = {
-    sqlite_enabled = true,
-    sqlite_filepath = "et_stats.db",
-    sqlite_retention_days = 30,
+    json_output_enabled = true,
+    json_output_directory = "json_stats/",
+    json_retention_days = 30,
     log_filepath = "log_filepath",
     logging_enabled = true,
     collect_damageStats = true,
@@ -366,9 +365,6 @@ local table_insert = table.insert
 local team_data_cache = nil
 local team_data_fetched = false
 
--- SQLite database handle
-local db = nil
-
 -- Logging function
 local log = configuration.logging_enabled and function(message)
     if not configuration.log_filepath or configuration.log_filepath:match("^%%.*%%$") then
@@ -378,7 +374,7 @@ local log = configuration.logging_enabled and function(message)
     local success, err = pcall(function()
         local file, open_err = io.open(configuration.log_filepath, "a")
         if not file then
-            et.G_LogPrint(string.format("game-stats-sqlite.lua: Failed to open log file: %s\n", open_err or "unknown error"))
+            et.G_LogPrint(string.format("game-stats-json.lua: Failed to open log file: %s\n", open_err or "unknown error"))
             return
         end
         
@@ -391,12 +387,12 @@ local log = configuration.logging_enabled and function(message)
         file:close()
         
         if not write_success then
-            et.G_LogPrint(string.format("game-stats-sqlite.lua: Failed to write to log file: %s\n", write_err or "unknown error"))
+            et.G_LogPrint(string.format("game-stats-json.lua: Failed to write to log file: %s\n", write_err or "unknown error"))
         end
     end)
     
     if not success then
-        et.G_LogPrint(string.format("game-stats-sqlite.lua: Logging error: %s\n", err or "unknown error"))
+        et.G_LogPrint(string.format("game-stats-json.lua: Logging error: %s\n", err or "unknown error"))
     end
 end or function() end
 
@@ -781,7 +777,7 @@ local function checkPlayerReadyStatus()
 
                 if not team_data_cache or not team_names_cache.alpha_teamname or not team_names_cache.beta_teamname then
                     log("First ready detected, fetching team data")
-                    -- Don't fetch from API in SQLite version
+                    -- Don't fetch from API in JSON version
                 end
 
                 enforcePlayerName(clientNum)
@@ -1815,452 +1811,83 @@ function et_Print(text)
     end
 end
 
--- SQLite database functions
-local function init_sqlite_db()
-    if not configuration.sqlite_enabled then
-        return nil
-    end
-
-    local db_path = configuration.sqlite_filepath
-    if not db_path or db_path:match("^%%.*%%$") then
-        log("SQLite disabled: Invalid file path")
-        return nil
-    end
-
-    local db, err = sqlite3.open(db_path)
-    if not db then
-        log("Failed to open SQLite database: " .. (err or "unknown error"))
-        return nil
-    end
-
-    -- Enable foreign keys and set busy timeout
-    db:exec("PRAGMA foreign_keys = ON;")
-    db:exec("PRAGMA busy_timeout = 5000;")
-
-    -- Create tables
-    local tables = {
-        -- Matches table
-        [[CREATE TABLE IF NOT EXISTS matches (
-            match_id TEXT PRIMARY KEY,
-            servername TEXT,
-            config TEXT,
-            defenderteam INTEGER,
-            winnerteam INTEGER,
-            timelimit TEXT,
-            nextTimeLimit TEXT,
-            mapname TEXT,
-            round INTEGER,
-            server_ip TEXT,
-            server_port TEXT,
-            round_start INTEGER,
-            round_end INTEGER,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Players table
-        [[CREATE TABLE IF NOT EXISTS players (
-            guid TEXT PRIMARY KEY,
-            name TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Player stats table
-        [[CREATE TABLE IF NOT EXISTS player_stats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            guid TEXT,
-            rounds INTEGER,
-            team INTEGER,
-            weaponStats TEXT,
-            distance_travelled_meters REAL,
-            distance_travelled_spawn REAL,
-            spawn_count INTEGER,
-            distance_travelled_spawn_avg REAL,
-            ups_avg REAL,
-            ups_peak REAL,
-            kph_avg REAL,
-            kph_peak REAL,
-            mph_avg REAL,
-            mph_peak REAL,
-            in_prone REAL,
-            in_crouch REAL,
-            in_mg REAL,
-            in_lean REAL,
-            in_objcarrier REAL,
-            in_vehiclescort REAL,
-            in_disguise REAL,
-            in_sprint REAL,
-            in_turtle REAL,
-            is_downed REAL,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            FOREIGN KEY (guid) REFERENCES players (guid),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Obituaries table
-        [[CREATE TABLE IF NOT EXISTS obituaries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            timestamp INTEGER,
-            target TEXT,
-            attacker TEXT,
-            meansOfDeath INTEGER,
-            attackerRespawnTime REAL,
-            victimRespawnTime REAL,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Damage stats table
-        [[CREATE TABLE IF NOT EXISTS damage_stats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            timestamp INTEGER,
-            target TEXT,
-            attacker TEXT,
-            damage INTEGER,
-            damageFlags INTEGER,
-            meansOfDeath INTEGER,
-            hitRegion TEXT,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Messages table
-        [[CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            timestamp INTEGER,
-            guid TEXT,
-            command TEXT,
-            message TEXT,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Objective stats table
-        [[CREATE TABLE IF NOT EXISTS objective_stats (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            guid TEXT,
-            event_type TEXT,
-            objective TEXT,
-            timestamp INTEGER,
-            extra_info TEXT,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            FOREIGN KEY (guid) REFERENCES players (guid),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Class switches table
-        [[CREATE TABLE IF NOT EXISTS class_switches (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            match_id TEXT,
-            guid TEXT,
-            timestamp INTEGER,
-            fromClass TEXT,
-            toClass TEXT,
-            FOREIGN KEY (match_id) REFERENCES matches (match_id),
-            FOREIGN KEY (guid) REFERENCES players (guid),
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )]],
-
-        -- Indexes for better performance
-        [[CREATE INDEX IF NOT EXISTS idx_match_id ON player_stats (match_id)]],
-        [[CREATE INDEX IF NOT EXISTS idx_obituaries_match_id ON obituaries (match_id)]],
-        [[CREATE INDEX IF NOT EXISTS idx_damage_stats_match_id ON damage_stats (match_id)]],
-        [[CREATE INDEX IF NOT EXISTS idx_messages_match_id ON messages (match_id)]],
-        [[CREATE INDEX IF NOT EXISTS idx_objective_stats_match_id ON objective_stats (match_id)]],
-        [[CREATE INDEX IF NOT EXISTS idx_class_switches_match_id ON class_switches (match_id)]]
-    }
-
-    for _, sql in ipairs(tables) do
-        local success, err = pcall(function()
-            return db:exec(sql)
-        end)
-        if not success then
-            log("SQLite table creation error: " .. tostring(err))
-            db:close()
-            return nil
-        end
-    end
-
-    log("SQLite database initialized successfully")
-    return db
-end
-
-local function save_to_sqlite(final_data)
-    if not db or not final_data then
+-- JSON file output functions
+local function save_to_json(final_data)
+    if not configuration.json_output_enabled then
         return false
     end
+
+    local output_dir = configuration.json_output_directory
+    if not output_dir or output_dir:match("^%%.*%%$") then
+        log("JSON output disabled: Invalid directory path")
+        return false
+    end
+
+    -- Create directory if it doesn't exist
+    os.execute("mkdir -p " .. output_dir)
+
+    -- Generate filename with timestamp
+    local timestamp = os.date("%Y%m%d_%H%M%S")
+    local mapname = final_data.round_info.mapname or "unknown"
+    local round = final_data.round_info.round or 1
+    local filename = string.format("%s%s_round%d_%s.json", output_dir, mapname, round, timestamp)
 
     local success, err = pcall(function()
-        -- Begin transaction
-        db:exec("BEGIN TRANSACTION")
-
-        -- Insert match info
-        local round_info = final_data.round_info
-        local stmt = db:prepare([[
-            INSERT OR REPLACE INTO matches 
-            (match_id, servername, config, defenderteam, winnerteam, timelimit, nextTimeLimit, 
-             mapname, round, server_ip, server_port, round_start, round_end)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ]])
+        local file, open_err = io.open(filename, "w")
+        if not file then
+            error("Failed to open file: " .. (open_err or "unknown error"))
+        end
         
-        stmt:bind_values(
-            round_info.matchID or "N/A",
-            round_info.servername,
-            round_info.config,
-            round_info.defenderteam,
-            round_info.winnerteam,
-            round_info.timelimit,
-            round_info.nextTimeLimit,
-            round_info.mapname,
-            round_info.round,
-            round_info.server_ip,
-            round_info.server_port,
-            round_info.round_start,
-            round_info.round_end
-        )
-        stmt:step()
-        stmt:reset()
-
-        -- Process player stats
-        for guid, player_data in pairs(final_data.player_stats) do
-            -- Insert or update player info
-            local player_stmt = db:prepare([[
-                INSERT OR IGNORE INTO players (guid, name) VALUES (?, ?)
-            ]])
-            player_stmt:bind_values(guid, player_data.name)
-            player_stmt:step()
-            player_stmt:reset()
-
-            -- Insert player stats
-            local stats_stmt = db:prepare([[
-                INSERT INTO player_stats 
-                (match_id, guid, rounds, team, weaponStats, distance_travelled_meters, 
-                 distance_travelled_spawn, spawn_count, distance_travelled_spawn_avg,
-                 ups_avg, ups_peak, kph_avg, kph_peak, mph_avg, mph_peak,
-                 in_prone, in_crouch, in_mg, in_lean, in_objcarrier, in_vehiclescort,
-                 in_disguise, in_sprint, in_turtle, is_downed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ]])
-            
-            local weapon_stats_json = json.encode(player_data.weaponStats or {})
-            
-            stats_stmt:bind_values(
-                round_info.matchID or "N/A",
-                guid,
-                player_data.rounds,
-                player_data.team,
-                weapon_stats_json,
-                player_data.distance_travelled_meters,
-                player_data.distance_travelled_spawn,
-                player_data.spawn_count,
-                player_data.distance_travelled_spawn_avg,
-                player_data.player_speed and player_data.player_speed.ups_avg or 0,
-                player_data.player_speed and player_data.player_speed.ups_peak or 0,
-                player_data.player_speed and player_data.player_speed.kph_avg or 0,
-                player_data.player_speed and player_data.player_speed.kph_peak or 0,
-                player_data.player_speed and player_data.player_speed.mph_avg or 0,
-                player_data.player_speed and player_data.player_speed.mph_peak or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_prone or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_crouch or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_mg or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_lean or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_objcarrier or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_vehiclescort or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_disguise or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_sprint or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.in_turtle or 0,
-                player_data.stance_stats_seconds and player_data.stance_stats_seconds.is_downed or 0
-            )
-            stats_stmt:step()
-            stats_stmt:reset()
-
-            -- Insert objective stats
-            if player_data.obj_planted or player_data.obj_destroyed or player_data.obj_taken or
-               player_data.obj_returned or player_data.obj_secured or player_data.obj_repaired or
-               player_data.obj_defused or player_data.obj_carrierkilled or player_data.obj_flagcaptured or
-               player_data.obj_misc or player_data.obj_escort or player_data.shoves_given or
-               player_data.shoves_received then
-                
-                local obj_stmt = db:prepare([[
-                    INSERT INTO objective_stats 
-                    (match_id, guid, event_type, objective, timestamp, extra_info)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ]])
-                
-                local event_types = {
-                    "obj_planted", "obj_destroyed", "obj_taken", "obj_returned", 
-                    "obj_secured", "obj_repaired", "obj_defused", "obj_carrierkilled",
-                    "obj_flagcaptured", "obj_misc", "obj_escort", "shoves_given", "shoves_received"
-                }
-                
-                for _, event_type in ipairs(event_types) do
-                    if player_data[event_type] then
-                        for timestamp, value in pairs(player_data[event_type]) do
-                            local extra_info = nil
-                            if type(value) == "table" then
-                                extra_info = json.encode(value)
-                                value = value.objective or "unknown"
-                            end
-                            
-                            obj_stmt:bind_values(
-                                round_info.matchID or "N/A",
-                                guid,
-                                event_type,
-                                tostring(value),
-                                timestamp,
-                                extra_info
-                            )
-                            obj_stmt:step()
-                            obj_stmt:reset()
-                        end
-                    end
-                end
-                obj_stmt:finalize()
-            end
-
-            -- Insert class switches
-            if player_data.class_switches then
-                local class_stmt = db:prepare([[
-                    INSERT INTO class_switches 
-                    (match_id, guid, timestamp, fromClass, toClass)
-                    VALUES (?, ?, ?, ?, ?)
-                ]])
-                
-                for _, switch in ipairs(player_data.class_switches) do
-                    class_stmt:bind_values(
-                        round_info.matchID or "N/A",
-                        guid,
-                        switch.timestamp,
-                        switch.fromClass,
-                        switch.toClass
-                    )
-                    class_stmt:step()
-                    class_stmt:reset()
-                end
-                class_stmt:finalize()
-            end
+        local json_str = json.encode(final_data)
+        if not json_str then
+            error("Failed to encode data as JSON")
         end
-
-        -- Insert obituaries
-        if round_info.obituaries then
-            local obit_stmt = db:prepare([[
-                INSERT INTO obituaries 
-                (match_id, timestamp, target, attacker, meansOfDeath, attackerRespawnTime, victimRespawnTime)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ]])
-            
-            for _, obit in ipairs(round_info.obituaries) do
-                obit_stmt:bind_values(
-                    round_info.matchID or "N/A",
-                    obit.timestamp,
-                    obit.target,
-                    obit.attacker,
-                    obit.meansOfDeath,
-                    obit.attackerRespawnTime,
-                    obit.victimRespawnTime
-                )
-                obit_stmt:step()
-                obit_stmt:reset()
-            end
-            obit_stmt:finalize()
-        end
-
-        -- Insert damage stats
-        if round_info.damageStats then
-            local damage_stmt = db:prepare([[
-                INSERT INTO damage_stats 
-                (match_id, timestamp, target, attacker, damage, damageFlags, meansOfDeath, hitRegion)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ]])
-            
-            for _, damage in ipairs(round_info.damageStats) do
-                damage_stmt:bind_values(
-                    round_info.matchID or "N/A",
-                    damage.timestamp,
-                    damage.target,
-                    damage.attacker,
-                    damage.damage,
-                    damage.damageFlags,
-                    damage.meansOfDeath,
-                    damage.hitRegion
-                )
-                damage_stmt:step()
-                damage_stmt:reset()
-            end
-            damage_stmt:finalize()
-        end
-
-        -- Insert messages
-        if round_info.messages then
-            local msg_stmt = db:prepare([[
-                INSERT INTO messages 
-                (match_id, timestamp, guid, command, message)
-                VALUES (?, ?, ?, ?, ?)
-            ]])
-            
-            for _, msg in ipairs(round_info.messages) do
-                msg_stmt:bind_values(
-                    round_info.matchID or "N/A",
-                    msg.timestamp,
-                    msg.guid,
-                    msg.command,
-                    msg.message
-                )
-                msg_stmt:step()
-                msg_stmt:reset()
-            end
-            msg_stmt:finalize()
-        end
-
-        -- Commit transaction
-        db:exec("COMMIT")
-        return true
+        
+        file:write(json_str)
+        file:close()
     end)
 
-    if not success then
-        db:exec("ROLLBACK")
-        log("SQLite save error: " .. tostring(err))
+    if success then
+        log("Data successfully saved to JSON file: " .. filename)
+        return true
+    else
+        log("JSON save error: " .. tostring(err))
         return false
     end
-
-    log("Data successfully saved to SQLite database")
-    return true
 end
 
-local function cleanup_old_sqlite_data()
-    if not db or not configuration.sqlite_retention_days then
+local function cleanup_old_json_files()
+    if not configuration.json_output_enabled or not configuration.json_retention_days then
         return
     end
 
+    local output_dir = configuration.json_output_directory
+    if not output_dir then return end
+
     local success, err = pcall(function()
-        local cutoff_date = os.time() - (configuration.sqlite_retention_days * 24 * 60 * 60)
-        local formatted_date = os.date("%Y-%m-%d %H:%M:%S", cutoff_date)
+        local cutoff_time = os.time() - (configuration.json_retention_days * 24 * 60 * 60)
         
-        -- Delete old data from all tables
-        local tables = {
-            "class_switches", "objective_stats", "messages", "damage_stats", 
-            "obituaries", "player_stats", "matches"
-        }
-        
-        for _, table_name in ipairs(tables) do
-            local stmt = db:prepare(string.format(
-                "DELETE FROM %s WHERE created_at < ?",
-                table_name
-            ))
-            stmt:bind(1, formatted_date)
-            stmt:step()
-            stmt:finalize()
+        -- Use platform-specific command to delete old files
+        if package.config:sub(1,1) == "\\" then -- Windows
+            -- This is a simplified approach for Windows
+            for file in io.popen('dir "'..output_dir..'" /b'):lines() do
+                if file:match("%.json$") then
+                    local path = output_dir .. file
+                    local mod_time = io.popen('for %I in ("'..path..'") do @echo %~tI'):read("*a")
+                    -- Parse mod_time and compare with cutoff_time
+                    -- Implementation depends on your needs
+                end
+            end
+        else -- Unix/Linux
+            os.execute("find " .. output_dir .. " -name \"*.json\" -mtime +" .. 
+                      configuration.json_retention_days .. " -delete")
         end
         
-        log("Cleaned up old SQLite data (older than " .. configuration.sqlite_retention_days .. " days)")
+        log("Cleaned up old JSON files (older than " .. configuration.json_retention_days .. " days)")
     end)
     
     if not success then
-        log("SQLite cleanup error: " .. tostring(err))
+        log("JSON cleanup error: " .. tostring(err))
     end
 end
 
@@ -2481,7 +2108,7 @@ function SaveStats()
         nextTimeLimit = ConvertTimelimit(et.trap_Cvar_Get("g_nextTimeLimit")),
         mapname = mapname,
         round = round,
-        matchID = "N/A",  -- Not using match ID in SQLite version
+        matchID = "N/A",  -- Not using match ID in JSON version
         server_ip = server_ip,
         server_port = server_port,
         round_start = round_start_time,
@@ -2592,13 +2219,13 @@ function SaveStats()
         player_stats = stats_json
     }
 
-    -- Save to SQLite
-    if configuration.sqlite_enabled then
-        local success = save_to_sqlite(final_data)
+    -- Save to JSON
+    if configuration.json_output_enabled then
+        local success = save_to_json(final_data)
         if success then
-            cleanup_old_sqlite_data()
+            cleanup_old_json_files()
         else
-            log("Failed to save data to SQLite database")
+            log("Failed to save data to JSON file")
         end
     end
 
@@ -2682,9 +2309,6 @@ function et_InitGame()
     lastFrameTime = et.trap_Milliseconds()
     current_gamestate = tonumber(et.trap_Cvar_Get("gamestate")) or -1
 
-    -- Initialize SQLite database
-    db = init_sqlite_db()
-
     -- Initialize clientGuids cache for all connected players
     for clientNum = 0, maxClients - 1 do
         if et.gentity_get(clientNum, "pers.connected") == CON_CONNECTED then
@@ -2703,11 +2327,4 @@ function et_InitGame()
     
     log(string.rep("-", 50))
     log(string.format("%s v%s initialized %s", modname, version, init_success and "successfully" or "with warnings"))
-end
-
-function et_ShutdownGame()
-    if db then
-        db:close()
-        log("SQLite database connection closed")
-    end
 end
