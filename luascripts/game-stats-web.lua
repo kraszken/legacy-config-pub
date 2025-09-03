@@ -312,9 +312,9 @@ local HR_NONE              = -1
 local HR_TYPES = {HR_HEAD, HR_ARMS, HR_BODY, HR_LEGS}
 local HR_NAMES = {
     [HR_HEAD] = "HR_HEAD",
-    [HR_ARMS] = "HR_ARM",
+    [HR_ARMS] = "HR_ARMS",
     [HR_BODY] = "HR_BODY",
-    [HR_LEGS] = "HR_LEG",
+    [HR_LEGS] = "HR_LEGS",
     [HR_NONE] = "HR_NONE"
 }
 
