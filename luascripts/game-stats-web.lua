@@ -1,5 +1,187 @@
-local modname = "game-stats-json"
-local version = "1.0.0"
+--[[
+    ET: Legacy
+    Copyright (C) 2012-2022 ET:Legacy team <mail@etlegacy.com>
+
+    This file is part of ET: Legacy - http://www.etlegacy.com
+
+    ET: Legacy is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ET: Legacy is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with ET: Legacy. If not, see <http://www.gnu.org/licenses/>.
+]]--
+
+--[[ 
+    Changelog:
+        01.01.1970: v1.0.0 -- MaxPower
+            - And he said let there be light. Date probably accurate. 
+
+        24-12-2024: v1.0.1 -- Oksii
+            - Added local logging
+
+        26-12-2024: v1.0.2 -- Oksii
+            - Moved variables to local configuration for easier control
+            - Allows us dynamic updating via docker's entrypoint script too.
+            - Using placeholder variables as I update them via docker env now.
+
+        29-12-2024: v1.0.3 -- Oksii (Max' idea, I'm just impatient)
+            - Moved matchid to remote host, fetch it just before stats submit
+            - Use net_ip and net_port as identifiers against the remote host,
+            - I intend to use dynamic routes but you could probably just package it
+              as a json too. 
+            - Implement few retries just in case
+            - Fetch IP from public API if net_ip returns 0.0.0.0 
+              as not everyone will have a binding set.
+            - Default to unixtime if matchid can't be retrieved.
+
+        30-12-2024: v1.0.4 -- Oksii 
+            - Added server_ip and server_port to json output to be more easily 
+              identifiable when custom games are submitted that no matchid exists for
+
+        31-12-2024: v1.0.5 -- OKsii
+            - Added obituaries (et_Obituary( target, attacker, meansOfDeath ))
+            - Added damageStats (et_Damage( target, attacker, damage, damageFlags, meansOfDeath))
+              See: damageFlags https://etlegacy-lua-docs.readthedocs.io/en/latest/misc.html#damage-bitflags
+                   meansOfDeath https://etlegacy-lua-docs.readthedocs.io/en/latest/constants.html#mod-constants
+            - Added message capture for all chats
+            - Made all toggleable via configuration table
+        
+        01-01-2025: v1.0.6 -- Oksii
+            - Sanitize message log, we think chat binds may have caused the json to malform over special characters
+            - Added some more robustness and error handling around stat submission
+            - Fetch userinfo and cache guid on first event for faster table lookups
+            - Remove player from cache upon disconnect
+            - Replace client id with guid in obituaries, messages and damageStats
+            - Added CURL retries for more robustness and better error handling
+
+        02-01-2025: v1.0.7 -- Oksii
+            - Clean up code, improve for performance and memory optimization 
+            - Sanitize SaveStats all in a single pass
+            - Set string length limit of 256 chars. Chat is limited to 150, what else would even get close?
+            - Added LOG_FORMAT for consistent log formatting
+            - Config validation
+            - Fixed initialization order and removed duplicate maxClients/max_clients
+            - Standardized maxClients variable usage throughout
+            - Refactor executeCurlCommand to save json content to temp file and save as binary data rather than string
+            - Refactor executeCurlCommand to use several additional command options and simplify GET's 
+            - Added lastSpawnTime to obituaries
+            - Added HitRegions to damageSats
+            - Removed debug logging and json dumps
+        
+        07-01-2025: v1.0.8 -- Oksii
+            - Improved error handling with logger to catch path/perm issues gracefully
+
+        08-01-2025: v1.0.9 -- Oksii
+            - Added 3-second delay before SaveStats() to prevent lag spikes during gamestate transition
+        
+        11-01-2025: v1.0.10 -- MaxPower
+            - Added function SaveStatstoFile for local output of JSON stats data
+            - Added (back) local configuration variable dump_stats_data for manual toggle of local output
+            - Added local configuration variable json_filepath for directing location of json output
+            - Added condition to output local json file if there is an error in API call
+
+        15-01-2025: v1.0.11 -- Oksii
+            - Fixed invalid gentity field error by properly accessing hitRegions through indexed parameters
+
+        03-02-2025: v1.1.0 -- Oksii
+            - Added objective tracking
+            - Added player shove tracking
+            - Exported configuration to config.toml
+            - Added default config and docker preset to config.toml
+            - Improved stat collection, early returns on disables
+            - Safety guard for GetAllHitRegions to prevent errors on fall damage
+            - Safety guard for SaveStats to prevent multiple calls 
+            - Improved logging
+            - Cleaned up redundant function from obj-track.lua merger 
+            - Moved map config and server relevant cvars to initializeServerInfo to free up et_initgame
+            - Cleaned up et_runframe 
+            - Added config validation
+            - Added helper to normalize strings
+            - Added helper to strip colors for et_Print 
+
+        07-02-2025: v1.1.1 -- Oksii
+            - Added dynamic flag coordinate detection and tracking from game entities
+            - Added misc objective tracking with coordinate-based attribution
+            - Added escort objective tracking with coordinate-based attribution
+            - Updated clientGuids cache structure to include team information
+            - Fixed all clientGuid lookups to properly handle new cache structure
+            - Improved objective attribution accuracy using team information
+            - Fixed find_nearest_player to use team-aware player lookups
+            - Refactored initializeServerInfo for better objective initialization
+            - Fixed various GUID handling inconsistencies throughout codebase
+            - Streamlined initialization order in initializeServerInfo
+            - Added maximum distance limit (150 units) for coordinate-based objective attribution
+            - Added distance check for flag, misc, and escort objective attribution
+            - Fixed bug where steal events showed raw table instead of GUID
+
+        18-02-2025: v1.1.2 -- Oksii
+            - Added health check in find_nearest_player to avoid attributing spectators
+        
+        14-03-2025: v1.1.3 -- Oksii
+            - Added tracking for class switches via ClientUserinfoChanged
+
+        18-04-2025: v1.1.4 -- HeDo
+            - Added spawntime tracking to obituaries
+
+        30-05-2025: v1.1.5 -- Oksii
+            - Added playerstate (crouch, prone, lean, walk, mounted) tracking
+            - Added distance travelled
+            - Added distance on spawn travelled (3s threshold)
+
+        31-05-2025: v1.1.6 -- Oksii
+            - stance_stats renamed to stance_stats_seconds
+            - Added round_start and round_end timestamps to round_info
+            - Average distance_travelled_spawn by tracking amount of player spawns
+        
+        02-05-2025: v1.1.7 -- Oksii
+            - Added in_objcarrier, in_vehicleescort, in_disguise, in_sprint, in_turtle, in_downed stance states
+            - Added player speed tracking
+            - Fixed world crush event in obituaries
+        
+        04-05-2025: v1.1.8 -- Oksii
+            - Added config toggle to support bobika's mapscripts and regular mapscripts both
+              Will fallback to regular if no bobika configurations exist 
+        
+        13-06-2025: v1.1.9 -- Oksii
+            - Added player/team name enforcement
+        
+        14-06-2025: v1.2 -- Oksii
+            - Refactor curl to use async background processing
+            - Cache matchid on init/player connect to reduce processing lag 
+            - More aggressive strip_color regex
+            - Added rename queue for connecting players to avoid config overwrites
+            - Added gamestate check in message logger to avoid intermission errors
+
+        16-06-2025: v1.2.1 -- Oksii
+            - Refactored name enforcement to use ready status check instead of connect/begin
+
+        19-06-2025: v1.2.2 -- Oksii
+            - Added version check
+            - Enforce naming policies and be stricter about renames during gameplay. 
+            - Reduced some of the logging verbosity
+        
+        20-06-2025: v1.2.3 -- Oksii
+            - HOTFIX: enforcing names during gamestate swap causes hard crash
+            - Added local cache to avoid multiple API calls during gameplay 
+        
+        27-06-2025: v1.2.4 -- Oksii
+            - HOTFIX: Accidentally removed fallback method for match_id in previous updates
+            - Add support for forced spectator names
+
+        27-06-2025: v1.2.5 -- Oksii
+            - Stricter name policy, use actual name instead of just checking for tags
+            - Minor cleanup of now redundant/unused functions            
+]]--
+
+local modname = "game-stats-web-api"
+local version = "1.2.5"
 
 -- Required libraries
 local json = require("dkjson")
@@ -7,19 +189,24 @@ local toml = require("toml")
 
 -- Default configuration
 local configuration = {
-    json_output_enabled = true,
-    json_output_directory = "json_stats/",
-    json_retention_days = 30,
+    api_token = "api_token",
+    api_url_matchid = "api_url_matchid",
+    api_url_submit = "api_url_submit",
+    api_url_version = "api_url_version",
     log_filepath = "log_filepath",
-    logging_enabled = true,
-    collect_damageStats = true,
-    collect_messages = true,
-    collect_objstats = true,
-    collect_obituaries = true,
-    collect_shovestats = true,
-    collect_movement_stats = true,
-    collect_stance_stats = true,
-    force_names = true
+    json_filepath = "json_filepath",
+    logging_enabled = false,
+    collect_damageStats = false,
+    collect_messages = false,
+    collect_objstats = false,
+    collect_obituaries = false,
+    collect_shovestats = false,
+    collect_movement_stats = false,
+    collect_stance_stats = false,
+    dump_stats_data = false,
+    bobika_mapscripts = false,
+    force_names = false,
+    version_check = false
 }
 
 -- config.toml
@@ -101,11 +288,21 @@ local function table_count(t)
     return count
 end
 
-local function process_config(config)
+local function process_config(config, use_bobika)
     local normalized = {}
     local maps_section
     
-    maps_section = config.maps
+    if use_bobika then
+        maps_section = config.bobika and config.bobika.maps
+        if maps_section then
+            et.G_Print("Using bobika map configurations\n")
+        else
+            et.G_Print("No bobika maps found, falling back to regular maps\n")
+            maps_section = config.maps
+        end
+    else
+        maps_section = config.maps
+    end
 
     -- Ensure we have a maps table
     if not maps_section then
@@ -181,8 +378,20 @@ local function process_config(config)
     return normalized
 end
 
-local function process_common_buildables(config)
-    local buildables_section = config.common_buildables
+local function process_common_buildables(config, use_bobika)
+    local buildables_section
+
+    if use_bobika then
+        buildables_section = config.bobika and config.bobika.common_buildables
+        if buildables_section then
+            et.G_Print("Using bobika common buildables\n")
+        else
+            et.G_Print("No bobika common buildables found, falling back to regular\n")
+            buildables_section = config.common_buildables
+        end
+    else
+        buildables_section = config.common_buildables
+    end
 
     return buildables_section or {}
 end
@@ -190,7 +399,7 @@ end
 do
     local config_path = get_config_path()
     local config = load_config(config_path)
-
+    
     if not config then
         et.G_Print(string.format("%s: Failed to load configuration file: %s\n", modname, config_path))
         return
@@ -199,7 +408,7 @@ do
     -- Check which configuration to use based on docker_config flag
     local use_docker = config.docker_config or false
     local config_section = use_docker and config.docker_configuration or config.configuration
-
+    
     if not config_section then
         et.G_Print(string.format("%s: No configuration section found\n", modname))
         return
@@ -211,18 +420,20 @@ do
     end
 
     -- Process map configs
-    if config.maps then
-        map_configs = process_config(config)
+    local use_bobika = configuration.bobika_mapscripts
+    
+    if config.maps or (config.bobika and config.bobika.maps) then
+        map_configs = process_config(config, use_bobika)
         if table_count(map_configs) == 0 then
             et.G_Print(string.format("%s: No valid map configurations found\n", modname))
         end
     else
         et.G_Print(string.format("%s: No maps section found in config\n", modname))
     end
-
-    -- Process common buildables
-    if config.common_buildables then
-        common_buildables = process_common_buildables(config)
+    
+    -- Process common buildables with bobika support
+    if config.common_buildables or (config.bobika and config.bobika.common_buildables) then
+        common_buildables = process_common_buildables(config, use_bobika)
         if table_count(common_buildables) == 0 then
             et.G_Print(string.format("%s: No common buildables found\n", modname))
         end
@@ -253,7 +464,7 @@ local objective_states     = {}
 local recent_announcements = {}
 local announcements_buffer = 5
 local repair_buffer        = 2000
-local MAX_OBJ_DISTANCE     = 500
+local MAX_OBJ_DISTANCE     = 500  -- Maximum distance in game units to consider a player "near" an objective
 
 -- Round timing variables
 local round_start_time     = 0
@@ -261,11 +472,11 @@ local round_end_time       = 0
 local current_gamestate    = -1
 
 local intermission         = false
-local saveStatsState       = { inProgress = false }
+local saveStatsState       = { inProgress = false } -- safety check to prevent SaveStats looping
 local nextStoreTime        = 0
 local scheduledSaveTime    = 0
-local storeTimeInterval    = 5000
-local saveStatsDelay       = 3000
+local storeTimeInterval    = 5000 -- how often we store players stats
+local saveStatsDelay       = 3000 -- wait for intermission screen before sending stats
 
 local playerMovementStats = {}
 local playerStanceStats = {}
@@ -344,9 +555,10 @@ local BODY_DOWNED         = 67108864
 
 local SPEED_US_TO_KPH = 15.58
 local SPEED_US_TO_MPH = 23.44
+local SPEED_US_TO_BANANA = 87.53
 
-local MAX_SPRINT_TIME     = 20000
-local LOW_STAMINA_THRESHOLD = 100
+local MAX_SPRINT_TIME     = 20000       -- Maximum sprint stamina
+local LOW_STAMINA_THRESHOLD = 100       -- Consider "turtle" when at or below this (nearly empty)
 
 -- Constants and variables for spawn time tracking
 local MAX_REINFSEEDS = 8
@@ -374,7 +586,7 @@ local log = configuration.logging_enabled and function(message)
     local success, err = pcall(function()
         local file, open_err = io.open(configuration.log_filepath, "a")
         if not file then
-            et.G_LogPrint(string.format("game-stats-json.lua: Failed to open log file: %s\n", open_err or "unknown error"))
+            et.G_LogPrint(string.format("game-stats-web.lua: Failed to open log file: %s\n", open_err or "unknown error"))
             return
         end
         
@@ -387,14 +599,14 @@ local log = configuration.logging_enabled and function(message)
         file:close()
         
         if not write_success then
-            et.G_LogPrint(string.format("game-stats-json.lua: Failed to write to log file: %s\n", write_err or "unknown error"))
+            et.G_LogPrint(string.format("game-stats-web.lua: Failed to write to log file: %s\n", write_err or "unknown error"))
         end
     end)
     
     if not success then
-        et.G_LogPrint(string.format("game-stats-json.lua: Logging error: %s\n", err or "unknown error"))
+        et.G_LogPrint(string.format("game-stats-web.lua: Logging error: %s\n", err or "unknown error"))
     end
-end or function() end
+end or function() end  -- No-op if logging disabled
 
 -- Utilities
 function ConvertTimelimit(timelimit)
@@ -432,6 +644,10 @@ local function strip_colors(text)
     return string.gsub(text, "%^[%w]", "")
 end
 
+local function shell_escape(str)
+    return "'" .. str:gsub("'", "'\"'\"'") .. "'"
+end
+
 local function is_player_ready(clientNum)
     local eFlags = et.gentity_get(clientNum, "ps.eFlags")
     if not eFlags then
@@ -440,6 +656,153 @@ local function is_player_ready(clientNum)
 
     -- Check if EF_READY flag is set (bit 3 = 0x00000008)
     return (eFlags & EF_READY) ~= 0
+end
+
+-- Async curl execution function
+local function executeCurlCommandAsync(curl_cmd, payload)
+    local temp_file
+    if payload then
+        temp_file = os.tmpname() .. ".json"
+        local f = io.open(temp_file, "w")
+        if not f then
+            log("Failed to create temp file for curl")
+            return false, "Failed to create temp file"
+        end
+        f:write(payload)
+        f:close()
+        
+        -- Modify curl command to read from file
+        curl_cmd = string.format('%s --data-binary @%s', curl_cmd, temp_file)
+    end
+
+    if not curl_cmd:find("--retry") then
+        curl_cmd = curl_cmd .. " -H 'Content-Type: application/json'"
+        curl_cmd = curl_cmd .. " --compressed --connect-timeout 2 --max-time 10"
+        curl_cmd = curl_cmd .. " --retry 3 --retry-delay 1 --retry-max-time 15"
+        curl_cmd = curl_cmd .. " --silent --output /dev/null"  -- Don't capture output
+    end
+    
+    -- Make it background process
+    curl_cmd = curl_cmd .. " &"
+    
+    local success = os.execute(curl_cmd)
+
+    if temp_file then
+        os.execute(string.format("sleep 15 && rm -f %s &", temp_file))
+    end
+    
+    return success == 0, success == 0 and "Request sent asynchronously" or "Failed to start async request"
+end
+
+local function executeCurlCommandSync(curl_cmd, payload, expected_code)
+    expected_code = expected_code or "2[0-9][0-9]"
+
+    -- If payload provided, handle it separately
+    local temp_file
+    if payload then
+        temp_file = os.tmpname() .. ".json"
+        local f = io.open(temp_file, "w")
+        if not f then
+            return nil, "Failed to create temp file"
+        end
+        f:write(payload)
+        f:close()
+
+        -- Modify curl command to read from file
+        curl_cmd = string.format('%s --data-binary @%s', curl_cmd, temp_file)
+    end
+
+    -- Add curl options with short timeouts
+    if not curl_cmd:find("--retry") then
+        curl_cmd = curl_cmd .. " -H 'Content-Type: application/json'"
+        curl_cmd = curl_cmd .. " --compressed --connect-timeout 1 --max-time 1"
+        curl_cmd = curl_cmd .. " --retry 1 --retry-delay 0 --retry-max-time 2"
+        curl_cmd = curl_cmd .. " --silent"
+    end
+
+    -- Execute curl command
+    local handle = io.popen(curl_cmd, 'r')
+    if not handle then
+        if temp_file then os.remove(temp_file) end
+        return nil, "Failed to create process"
+    end
+
+    local result = handle:read("*a")
+    handle:close()
+
+    -- Clean up temp file if it exists
+    if temp_file then
+        os.remove(temp_file)
+    end
+
+    -- Try to decode JSON response
+    if result and result ~= "" then
+        local success, decoded = pcall(json.decode, result)
+        if success then
+            return decoded
+        end
+        -- If JSON decode fails, return the raw result
+        return result
+    end
+    
+    return nil, "No response body"
+end
+
+local function getPublicIP()
+    local curl_cmd = 'curl -s --connect-timeout 2 --max-time 5 https://api.ipify.org?format=json'
+    local result, err = executeCurlCommandSync(curl_cmd)
+    
+    if result and result.ip then
+        return result.ip
+    end
+    
+    log("Failed to fetch public IP: " .. (err or "unknown error"))
+    return "0.0.0.0"
+end
+
+local function checkVersion()
+    if not configuration.version_check or 
+       not configuration.api_url_version or 
+       configuration.api_url_version:match("^%%.*%%$") then
+        return
+    end
+
+    local success, err = pcall(function()
+        local curl_cmd = string.format(
+            'curl -H "Authorization: Bearer %s" %s',
+            configuration.api_token,
+            configuration.api_url_version
+        )
+
+        log("Checking version against API...")
+
+        local result, err = executeCurlCommandSync(curl_cmd)
+
+        if result and result.latest_version then
+            local latest_version = result.latest_version
+            log(string.format("Current version: %s, Latest version: %s", version, latest_version))
+            
+            if version ~= latest_version then
+                et.trap_SendServerCommand(-1, string.format(
+                    "chat \"^3game-stats-web.lua^7 is outdated (^i%s^7).\"",
+                    version
+                ))
+                et.trap_SendServerCommand(-1, string.format(
+                    "chat \"^7Please update to the latest version (^2%s^7) ASAP.\"",
+                    latest_version
+                ))
+                log(string.format("Version mismatch detected - current: %s, latest: %s", version, latest_version))
+            else
+                log("Version is up to date")
+            end
+        else
+            log("Failed to check version: " .. (err or "no version data received"))
+        end
+    end)
+
+    if not success then
+        log("Version check error: " .. tostring(err))
+    end
 end
 
 local function getTeamDataFilePath()
@@ -647,6 +1010,8 @@ local clientGuids = setmetatable({}, {
     end
 })
 
+
+
 local function findPlayerNameByGuid(guid)
     if not team_data_cache then
         return nil
@@ -713,6 +1078,34 @@ local function getFirstColorCode(name)
     return code
 end
 
+local function getSpectatorEnforcedName(spectator_teamname, current_name)
+    spectator_teamname = spectator_teamname or ""
+    current_name = current_name or ""
+    local candidate = spectator_teamname .. " " .. current_name
+    if #candidate <= 35 then
+        return candidate
+    end
+
+    -- Retain the first color code, default to ^7 if none
+    local first_code = getFirstColorCode(current_name) or "^7"
+    local name_no_color = first_code .. strip_colors(current_name)
+    candidate = spectator_teamname .. " " .. name_no_color
+    if #candidate <= 35 then
+        return candidate
+    end
+
+    local allowed = 35 - (#spectator_teamname + 1 + #first_code)
+    local truncated = string.sub(strip_colors(current_name), 1, allowed)
+    return spectator_teamname .. " " .. first_code .. truncated
+end
+
+local function hasSpectatorPrefix(current_name, spectator_teamname)
+    if not current_name or not spectator_teamname then return false end
+    local clean_name = strip_colors(current_name):lower()
+    local clean_prefix = strip_colors(spectator_teamname):lower()
+    return clean_name:sub(1, #clean_prefix) == clean_prefix
+end
+
 local function checkAllPlayersNamesGameplay(currentTime)
     if not configuration.force_names then
         return
@@ -756,10 +1149,56 @@ local function validateAllPlayerNames()
                 local sessionTeam = tonumber(et.gentity_get(clientNum, "sess.sessionTeam")) or 0
                 if sessionTeam == 1 or sessionTeam == 2 then
                     enforcePlayerName(clientNum)
+                elseif sessionTeam == 3 then
+                    local current_name = Info_ValueForKey(userinfo, "name")
+                    if current_name and spectator_teamname and not hasSpectatorPrefix(current_name, spectator_teamname) then
+                        local new_name = getSpectatorEnforcedName(spectator_teamname, current_name)
+                        if new_name ~= current_name then
+                            queuePlayerRename(clientNum, new_name, "mass validation spectator")
+                            log(string.format("Spectator mass validation: Player %s renamed to '%s'", clientNum, new_name))
+                        end
+                    end
                 end
             end
         end
     end
+end
+
+local function fetchMatchIDFromAPI()
+    local url = string.format("%s/%s/%s", configuration.api_url_matchid, server_ip, server_port)
+
+    local curl_cmd = string.format(
+        'curl -H "Authorization: Bearer %s" --connect-timeout 1 --max-time 2 %s',
+        configuration.api_token,
+        url
+    )
+
+    local result, err = executeCurlCommandSync(curl_cmd)
+
+    if result and type(result) == "table" and result.match_id and result.match_id ~= "" then
+        cached_match_id = result.match_id
+
+        -- Force names/team name logic if present
+        if configuration.force_names and result.match then
+            if result.match.alpha_teamname and result.match.beta_teamname then
+                team_names_cache.alpha_teamname = result.match.alpha_teamname
+                team_names_cache.beta_teamname = result.match.beta_teamname
+                team_names_cache.last_updated = trap_Milliseconds()
+            end
+            team_data_cache = result.match
+            team_data_fetched = true
+        end
+
+        log(string.format("API fetch successful - Match ID: %s, Force names: %s", 
+            result.match_id or "nil", 
+            configuration.force_names and "yes" or "no"))
+        return result.match_id
+    end
+
+    local fallback_match_id = tostring(os.time())
+    cached_match_id = fallback_match_id
+    log("API fetch failed or no match_id in response, falling back to UNIXTIME as match_id: " .. fallback_match_id)
+    return fallback_match_id
 end
 
 local function checkPlayerReadyStatus()
@@ -777,7 +1216,10 @@ local function checkPlayerReadyStatus()
 
                 if not team_data_cache or not team_names_cache.alpha_teamname or not team_names_cache.beta_teamname then
                     log("First ready detected, fetching team data")
-                    -- Don't fetch from API in JSON version
+                    local match_id = fetchMatchIDFromAPI()
+                    if match_id then
+                        log(string.format("Team data fetched on ready: %s", match_id))
+                    end
                 end
 
                 enforcePlayerName(clientNum)
@@ -1630,7 +2072,7 @@ function et_Print(text)
         end
     end
 
-        -- Handle objectives and popups
+    -- Handle objectives and popups
     if string.find(text, "legacy popup:") then
         local normalized_text = normalize_key(strip_colors(text))
 
@@ -1811,83 +2253,251 @@ function et_Print(text)
     end
 end
 
--- JSON file output functions
-local function save_to_json(final_data)
-    if not configuration.json_output_enabled then
-        return false
-    end
+-- Sanitize
+local SANITIZE_PATTERNS = {
+    ['"'] = '\\"',          -- Escape double quotes for JSON
+    ["'"] = "\\'",          -- Escape single quotes
+    ['\n'] = '\\n',         -- newlines
+    ['\r'] = '\\r',         -- carriage returns
+    ['\t'] = '\\t',         -- tabs
+    ['\0'] = '',            -- remove null bytes
+    ['%z'] = '',            -- remove null bytes
+    ['%c'] = ''             -- remove other control characters
+}
 
-    local output_dir = configuration.json_output_directory
-    if not output_dir or output_dir:match("^%%.*%%$") then
-        log("JSON output disabled: Invalid directory path")
-        return false
-    end
-
-    -- Create directory if it doesn't exist
-    os.execute("mkdir -p " .. output_dir)
-
-    -- Generate filename with timestamp
-    local timestamp = os.date("%Y%m%d_%H%M%S")
-    local mapname = final_data.round_info.mapname or "unknown"
-    local round = final_data.round_info.round or 1
-    local filename = string.format("%s%s_round%d_%s.json", output_dir, mapname, round, timestamp)
-
-    local success, err = pcall(function()
-        local file, open_err = io.open(filename, "w")
-        if not file then
-            error("Failed to open file: " .. (open_err or "unknown error"))
-        end
+local function sanitizeData(data, maxLength)
+    maxLength = maxLength or 256
+    
+    local dataType = type(data)
+    
+    if dataType == "string" then
+        -- First handle the basic escapes
+        local sanitized = data:gsub('["\'\n\r\t%z%c]', SANITIZE_PATTERNS)
         
-        local json_str = json.encode(final_data)
-        if not json_str then
-            error("Failed to encode data as JSON")
-        end
+        -- Then handle non-ASCII characters
+        sanitized = sanitized:gsub('[^%g%s]', function(c)
+            -- Convert any non-ASCII character to \u{hex} format
+            return string.format('\\u{%x}', string.byte(c))
+        end)
         
-        file:write(json_str)
-        file:close()
-    end)
-
-    if success then
-        log("Data successfully saved to JSON file: " .. filename)
-        return true
+        if #sanitized > maxLength then
+            return sanitized:sub(1, maxLength) .. "..."
+        end
+        return sanitized
+        
+    elseif dataType == "table" then
+        local sanitized = {}
+        for k, v in pairs(data) do
+            local sanitizedKey = type(k) == "string" and sanitizeData(k, maxLength) or k
+            sanitized[sanitizedKey] = sanitizeData(v, maxLength)
+        end
+        return sanitized
+        
+    elseif dataType == "number" or dataType == "boolean" then
+        return data
+        
     else
-        log("JSON save error: " .. tostring(err))
-        return false
+        return ""
     end
 end
 
-local function cleanup_old_json_files()
-    if not configuration.json_output_enabled or not configuration.json_retention_days then
+local function SaveStatsToFile(payload, file_path)
+    -- Ensure the directory path exists
+    local dir_path = file_path:match("^(.*)/[^/]+$") -- Extract directory from the file path
+    if dir_path then
+        os.execute("mkdir -p " .. dir_path) -- Create the directory if it doesn't exist
+    end
+
+    -- Open the file for writing
+    local file, err = io.open(file_path, "w")
+    if not file then
+        log(string.format("Error opening file for writing: %s. Error: %s", file_path, err))
+        return false, "Failed to open file"
+    end
+
+    -- Write the payload
+    local success, write_err = pcall(function()
+        file:write(payload)
+    end)
+
+    -- Close the file
+    file:close()
+
+    -- Handle write errors
+    if not success then
+        log(string.format("Error writing to file: %s. Error: %s", file_path, write_err))
+        return false, "Failed to write file"
+    end
+
+    log(string.format("JSON data successfully written to: %s", file_path))
+    return true
+end
+
+local function initializeServerInfo()
+    local env_ip = os.getenv("MAP_IP")
+    local net_ip = et.trap_Cvar_Get("net_ip")
+    local net_port = et.trap_Cvar_Get("net_port")
+
+    if env_ip and env_ip ~= "" then
+        server_ip = env_ip
+    elseif net_ip and net_ip ~= "" and net_ip ~= "0.0.0.0" and net_ip ~= "::0" then
+        server_ip = net_ip
+    else
+        server_ip = getPublicIP()
+    end
+
+    server_port = net_port
+
+    -- Initialize map info
+    local full_mapname = et.trap_Cvar_Get("mapname")
+    local base_mapname = get_base_map_name(full_mapname)
+    local round = tonumber(et.trap_Cvar_Get("g_currentRound")) == 0 and 1 or 2
+    local et_version = et.trap_Cvar_Get("mod_version")
+    
+    -- Find matching map configuration
+    local found_config = false
+    for config_name, config in pairs(map_configs) do
+        local base_config_name = get_base_map_name(config_name)
+        
+        if base_mapname == base_config_name then
+            mapname = config_name  -- Use the config's canonical name
+            found_config = true
+            break
+        end
+    end
+
+    -- Initialize objective states if we have a valid map config
+    local map_config = map_configs[mapname]
+    if map_config then
+        -- Collect all objectives first
+        local all_objectives = {}
+        
+        -- Initialize objective states
+        if map_config.objectives then
+            for _, obj in ipairs(map_config.objectives) do
+                objective_states[obj.name] = {
+                    last_popup = "",
+                    last_announce = "",
+                    carrier_id = nil,
+                    last_action = "",
+                    timestamp = 0,
+                    planter_guid = nil
+                }
+                table.insert(all_objectives, obj.name)
+            end
+        end
+        
+        -- Initialize buildables
+        if map_config.buildables then
+            for obj_name, obj_config in pairs(map_config.buildables) do
+                objective_states[obj_name] = {
+                    last_popup = "",
+                    last_announce = "",
+                    last_action = "",
+                    timestamp = 0
+                }
+                table.insert(all_objectives, obj_name)
+            end
+        end
+
+        -- Initialize flag configurations dynamically
+        if map_config.flags then
+            local dynamic_flags = getFlagCoordinates()
+            if dynamic_flags then
+                for flag_name, flag_data in pairs(dynamic_flags) do
+                    if map_config.flags[flag_name] then
+                        map_config.flags[flag_name].flag_coordinates = flag_data.flag_coordinates
+                        log(string.format("Updated %s coordinates to: %s", 
+                            flag_name, 
+                            flag_data.flag_coordinates))
+                        table.insert(all_objectives, "flag_" .. flag_name)
+                    end
+                end
+            end
+        end
+
+        -- Initialize misc objectives
+        if map_config.misc then
+            for misc_name, _ in pairs(map_config.misc) do
+                table.insert(all_objectives, "misc_" .. misc_name)
+            end
+        end
+
+        if map_config.escort then
+            for escort_name, _ in pairs(map_config.escort) do
+                table.insert(all_objectives, "escort_" .. escort_name)
+            end
+        end
+
+        -- Log initialization details
+        log(string.rep("-", 50))
+        log(string.format("Server Started"))
+        log(string.format("ET:Legacy Version: %s", et_version))
+        log(string.format("Server: %s:%s", server_ip, server_port))
+        log(string.format("Map: %s, Round: %d", full_mapname, round))
+        
+        if found_config then
+            log(string.format("Map config loaded: %s (base: %s)", mapname, base_mapname))
+            
+            -- Log all objectives
+            if #all_objectives > 0 then
+                log(string.format("Map Objectives: %s", table.concat(all_objectives, ", ")))
+            end
+
+            log(string.format("Total objective states initialized: %d", table_count(objective_states)))
+        end
+    else
+        log(string.format("No config found for map: %s (base: %s)", full_mapname, base_mapname))
+    end
+    
+    return found_config
+end
+
+local function handle_gamestate_change(new_gamestate)
+    if new_gamestate == current_gamestate then
         return
     end
 
-    local output_dir = configuration.json_output_directory
-    if not output_dir then return end
+    local old_gamestate = current_gamestate
+    current_gamestate = new_gamestate
 
-    local success, err = pcall(function()
-        local cutoff_time = os.time() - (configuration.json_retention_days * 24 * 60 * 60)
-        
-        -- Use platform-specific command to delete old files
-        if package.config:sub(1,1) == "\\" then -- Windows
-            -- This is a simplified approach for Windows
-            for file in io.popen('dir "'..output_dir..'" /b'):lines() do
-                if file:match("%.json$") then
-                    local path = output_dir .. file
-                    local mod_time = io.popen('for %I in ("'..path..'") do @echo %~tI'):read("*a")
-                    -- Parse mod_time and compare with cutoff_time
-                    -- Implementation depends on your needs
-                end
-            end
-        else -- Unix/Linux
-            os.execute("find " .. output_dir .. " -name \"*.json\" -mtime +" .. 
-                      configuration.json_retention_days .. " -delete")
+    if new_gamestate == et.GS_PLAYING and old_gamestate ~= et.GS_PLAYING then
+        round_start_time = trap_Milliseconds()
+        rename_in_progress = {}
+
+        if configuration.force_names then
+            log("Game starting - loading data from file ONLY (no API calls)")
+            loadTeamDataFromFile()
         end
-        
-        log("Cleaned up old JSON files (older than " .. configuration.json_retention_days .. " days)")
-    end)
-    
-    if not success then
-        log("JSON cleanup error: " .. tostring(err))
+
+    elseif new_gamestate == et.GS_WARMUP_COUNTDOWN and old_gamestate == et.GS_WARMUP then
+        log("Warmup countdown - fetching fresh data and saving to file")
+
+        local match_id = fetchMatchIDFromAPI()
+        if match_id then
+            log(string.format("Fresh data fetched: %s", match_id))
+            saveTeamDataToFile()
+
+            if configuration.force_names and team_data_cache and team_names_cache.alpha_teamname and team_names_cache.beta_teamname then
+                validateAllPlayerNames()
+            end
+        else
+            log("Failed to fetch fresh data during countdown")
+        end
+
+    elseif new_gamestate == et.GS_INTERMISSION and old_gamestate == et.GS_PLAYING then
+        round_end_time = trap_Milliseconds()
+        log("Round ended - clearing cached data")
+
+        if configuration.force_names then
+            wipeTeamDataFile()
+            team_data_cache = nil
+            team_data_fetched = false
+            team_names_cache.alpha_teamname = nil
+            team_names_cache.beta_teamname = nil
+            team_names_cache.last_updated = 0
+            cached_match_id = nil
+        end
     end
 end
 
@@ -2093,10 +2703,11 @@ function SaveStats()
     end
     saveStatsState.inProgress = true
 
+    local matchID = fetchMatchIDFromAPI()
     local mapname = Info_ValueForKey(et.trap_GetConfigstring(et.CS_SERVERINFO), "mapname")
     local round = tonumber(et.trap_Cvar_Get("g_currentRound")) == 0 and 2 or 1
 
-    log(string.format("Saving stats - Map: %s, Round: %d", mapname, round))
+    log(string.format("Saving stats - MatchID: %s, Map: %s, Round: %d", matchID, mapname, round))
 
     -- header data
     local header_json = {
@@ -2108,7 +2719,7 @@ function SaveStats()
         nextTimeLimit = ConvertTimelimit(et.trap_Cvar_Get("g_nextTimeLimit")),
         mapname = mapname,
         round = round,
-        matchID = "N/A",  -- Not using match ID in JSON version
+        matchID = matchID,
         server_ip = server_ip,
         server_port = server_port,
         round_start = round_start_time,
@@ -2214,18 +2825,57 @@ function SaveStats()
     end
 
     -- Combine and sanitize
-    local final_data = {
+    local final_data = sanitizeData({
         round_info = header_json,
         player_stats = stats_json
-    }
+    })
 
-    -- Save to JSON
-    if configuration.json_output_enabled then
-        local success = save_to_json(final_data)
-        if success then
-            cleanup_old_json_files()
+    -- JSON encode
+    local json_str = json.encode(final_data)
+    if not json_str then
+        log("Error: Failed to encode JSON data")
+        saveStatsState.inProgress = false
+        return
+    end
+
+    -- Construct the curl command
+    -- local curl_cmd = string.format(
+    --     'curl -X POST -H "Authorization: Bearer %s" %s',
+    --     configuration.api_token,
+    --     configuration.api_url_submit
+    -- )
+
+    -- local success, message = executeCurlCommandAsync(curl_cmd, json_str)    
+
+    if success then
+        log("Stats submission started")
+    else
+        log("Failed to start stats submission: " .. (message or "unknown error"))
+    end
+
+    -- Always save locally if dump_stats_data is enabled
+    if configuration.dump_stats_data then
+        -- Make JSON readable
+        local json_str_indented = json.encode(final_data, { indent = true })
+        if not json_str_indented then
+            log("Error: Failed to encode JSON data for file writing")
         else
-            log("Failed to save data to JSON file")
+            -- Build JSON file name
+            if not string.match(configuration.json_filepath, "/$") then
+                configuration.json_filepath = configuration.json_filepath .. "/"
+            end
+            local json_file = configuration.json_filepath .. string.format("gamestats-%s-%s%s-round-%d.json", 
+                matchID, 
+                os.date('%Y-%m-%d-%H%M%S-'), 
+                mapname, 
+                round
+            )
+
+            -- Save JSON payload to local file
+            local file_success, write_err = SaveStatsToFile(json_str_indented, json_file)
+            if not file_success then
+                log(string.format("Error writing JSON to file: %s", write_err))
+            end
         end
     end
 
@@ -2233,50 +2883,6 @@ function SaveStats()
     resetGameState()
 
     log("SaveStats completed")
-end
-
-local function handle_gamestate_change(new_gamestate)
-    if new_gamestate == current_gamestate then
-        return
-    end
-
-    local old_gamestate = current_gamestate
-    current_gamestate = new_gamestate
-
-    if new_gamestate == et.GS_PLAYING and old_gamestate ~= et.GS_PLAYING then
-        round_start_time = trap_Milliseconds()
-        rename_in_progress = {}
-
-        if configuration.force_names then
-            log("Game starting - loading data from file")
-            loadTeamDataFromFile()
-        end
-
-    elseif new_gamestate == et.GS_WARMUP_COUNTDOWN and old_gamestate == et.GS_WARMUP then
-        log("Warmup countdown - preparing for match")
-        
-        -- Generate a simple match ID based on timestamp
-        cached_match_id = os.date("%Y%m%d_%H%M%S")
-        log(string.format("Generated match ID: %s", cached_match_id))
-        
-        if configuration.force_names then
-            validateAllPlayerNames()
-        end
-
-    elseif new_gamestate == et.GS_INTERMISSION and old_gamestate == et.GS_PLAYING then
-        round_end_time = trap_Milliseconds()
-        log("Round ended - clearing cached data")
-
-        if configuration.force_names then
-            wipeTeamDataFile()
-            team_data_cache = nil
-            team_data_fetched = false
-            team_names_cache.alpha_teamname = nil
-            team_names_cache.beta_teamname = nil
-            team_names_cache.last_updated = 0
-            cached_match_id = nil
-        end
-    end
 end
 
 function et_RunFrame(gameFrameLevelTime)
@@ -2320,6 +2926,37 @@ function et_RunFrame(gameFrameLevelTime)
 end
 
 local function validateConfiguration()
+    -- Check API token
+    if not configuration.api_token or configuration.api_token:match("^%%.*%%$") then
+        log("Configuration error: Invalid or missing API token")
+        return false, "Invalid or missing API token"
+    end
+    
+    -- Check matchid URL
+    if not configuration.api_url_matchid or 
+       not configuration.api_url_matchid:match("^https?://") or 
+       configuration.api_url_matchid:match("^%%.*%%$") then
+        log("Configuration error: Invalid matchid API URL")
+        return false, "Invalid matchid API URL"
+    end
+    
+    -- Check submit URL
+    if not configuration.api_url_submit or 
+       not configuration.api_url_submit:match("^https?://") or 
+       configuration.api_url_submit:match("^%%.*%%$") then
+        log("Configuration error: Invalid submit API URL")
+        return false, "Invalid submit API URL"
+    end
+
+    if configuration.version_check then
+        if not configuration.api_url_version or 
+           not configuration.api_url_version:match("^https?://") or 
+           configuration.api_url_version:match("^%%.*%%$") then
+            log("Configuration error: Invalid version API URL")
+            return false, "Invalid version API URL"
+        end
+    end
+
     -- Check map configuration
     if not map_configs then
         log("Configuration error: map_configs is nil")
@@ -2339,21 +2976,6 @@ local function validateConfiguration()
     return true
 end
 
-
-local function initializeServerInfo()
-    -- Get server IP and port from serverinfo
-    local serverinfo = et.trap_GetConfigstring(et.CS_SERVERINFO)
-    server_ip = Info_ValueForKey(serverinfo, "sv_hostname")
-    server_port = Info_ValueForKey(serverinfo, "sv_port")
-    
-    if not server_port or server_port == "" then
-        server_port = "27960"  -- Default ET port
-    end
-    
-    log(string.format("Server info: %s:%s", server_ip, server_port))
-    return true
-end
-
 function et_InitGame()
     et.RegisterModname(string.format("%s %s", modname, version))
     parseReinforcementTimes()
@@ -2367,6 +2989,23 @@ function et_InitGame()
     local init_success = initializeServerInfo()
     lastFrameTime = et.trap_Milliseconds()
     current_gamestate = tonumber(et.trap_Cvar_Get("gamestate")) or -1
+
+    if current_gamestate == et.GS_PLAYING and configuration.force_names then
+        log("Game in progress, attempting to load team data from file")
+        loadTeamDataFromFile()
+    end
+
+    if (current_gamestate == et.GS_WARMUP or current_gamestate == et.GS_WARMUP_COUNTDOWN) and 
+       configuration.api_url_matchid and configuration.api_token then
+        log(string.format("Gamestate %d, fetching match ID", current_gamestate))
+        local match_id = fetchMatchIDFromAPI()
+        if match_id then
+            cached_match_id = match_id
+            log(string.format("Match ID fetched: %s", cached_match_id))
+        else
+            log("Failed to fetch match ID during init")
+        end
+    end
 
     -- Initialize clientGuids cache for all connected players
     for clientNum = 0, maxClients - 1 do
