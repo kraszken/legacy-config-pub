@@ -2688,7 +2688,7 @@ function StoreStats()
 
 				timePlayed               = timeAxis + timeAllies == 0 and 0 or (100.0 * timePlayed / (timeAxis + timeAllies))
 				
-				stats[guid] = string.format("%s\\%s\\%d\\%d\\%d%s", string.sub(guid, 1, 8), name, rounds, team, dwWeaponMask, weaponStats)
+				stats[guid] = string.format("%s\\%s\\%d\\%d\\%d %s", string.sub(guid, 1, 8), name, rounds, team, dwWeaponMask, weaponStats)
 				stats[guid] = string.format("%s %d %d %d %d %d %d %d %d %0.1f %d\n", stats[guid], damageGiven, damageReceived, teamDamageGiven, teamDamageReceived, gibs, selfkills, teamkills, teamgibs, timePlayed, xp)
 			end
 		end
