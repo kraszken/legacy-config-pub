@@ -2839,13 +2839,13 @@ function SaveStats()
     end
 
     -- Construct the curl command
-    -- local curl_cmd = string.format(
-    --     'curl -X POST -H "Authorization: Bearer %s" %s',
-    --     configuration.api_token,
-    --     configuration.api_url_submit
-    -- )
+    local curl_cmd = string.format(
+        'curl -X POST -H "Authorization: Bearer %s" %s',
+        configuration.api_token,
+        configuration.api_url_submit
+    )
 
-    -- local success, message = executeCurlCommandAsync(curl_cmd, json_str)    
+    local success, message = executeCurlCommandAsync(curl_cmd, json_str)    
 
     if success then
         log("Stats submission started")
