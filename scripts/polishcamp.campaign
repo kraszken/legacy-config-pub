@@ -1,7 +1,7 @@
 {
 name        "Polish ET Legacy Campaign"
 shortname   "polish_campaign"
-description "^z welcome on Poland ET Legacy ^1FFA Server^z!more info at: ^1www.polandetlegacy.com ^z- where you can some info u might need how to play this game and also join our discord community via website where you can find more lovely stuff and also play gather games with us in 1vs1,3vs3 and 6vs6 formats! Please respect each other during the game.^1Have fun^z!"
+description "^0Welcome on ^7Pol^1and ^0ET Legacy ^1FFA Server^z!more info at: ^9www.polandetlegacy.com ^0- where you can some info u might need how to play this game and also join our discord community via website where you can find more lovely stuff and also play gather games with us in 1vs1,3vs3 and 6vs6 formats! Please respect each other during the game.^7Have ^1fun^0!""
 maps "supply;sw_goldrush_te;etl_adlernest;radar;bremen_b3;decay_sw;etl_frostbite;missile_b3;braundorf_b4;etl_sp_delivery"
 mapTC       374 185
 type        "wolfmp"
