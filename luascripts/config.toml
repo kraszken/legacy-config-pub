@@ -14,14 +14,14 @@
 # and environment variables provided by docker on runtime.
 # Automatically set via docker container, no edit required.
 
-docker_config = true
+docker_config = false
 
 # Regular configuration settings (used when docker_config = false)
 [configuration]
 api_token = "%CONF_STATS_API_TOKEN%"
-api_url_matchid = "sampleurl.com"
+api_url_matchid = "https://api.etl.lol/api/v2/stats/etl/match-manager"
 api_url_submit = "%CONF_STATS_API_URL_SUBMIT%"
-api_url_version = "sampleurl.com"
+api_url_version = "https://api.etl.lol/api/v2/stats/etl/matches/stats/version"
 log_filepath = "/legacy/homepath/legacy/stats/game_stats.log"
 json_filepath = "/legacy/homepath/legacy/stats/"
 logging_enabled = true
