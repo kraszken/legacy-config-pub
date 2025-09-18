@@ -45,8 +45,8 @@ AxisBots["Halfwit"] = t;
 
 // Field Ops
 t = { class=CLASS.FIELDOPS, weapon=0, profile="" };
-AxisBots["Halfbaked"] = t;
-AxisBots["Fullmonty"] = t;
+AxisBots["Wanhaomena"] = t;
+AxisBots["Słanidius"] = t;
 AxisBots["Nohope"] = t;
 AxisBots["Hitnrun"] = t;
 AxisBots["Missnrun"] = t;
@@ -55,7 +55,7 @@ AxisBots["Fullthrottle"] = t;
 
 // Medics
 t = { class=CLASS.MEDIC, weapon=0, profile="" };
-AxisBots["NoAmmo"] = t;
+AxisBots["giehate"] = t;
 AxisBots["Bullseye"] = t;
 AxisBots["Aimless"] = t;
 AxisBots["Blackadder"] = t;
@@ -78,8 +78,6 @@ AxisBots["Drago"] = t;
 
 // Covert Ops
 t = { class=CLASS.COVERTOPS, weapon=0, profile="" };
-AlliedBots["Wanhaomena"] = t;
-AlliedBots["Słanidius"] = t;
 AlliedBots["Wens"] = t;
 AlliedBots["Brohn"] = t;
 AlliedBots["Ivor"] = t;
@@ -94,7 +92,7 @@ AlliedBots["Garbok"] = t;
 AlliedBots["Korv"] = t;
 AlliedBots["Vokur"] = t;
 AlliedBots["Gali"] = t;
-AlliedBots["Beelz"] = t;
+AlliedBots["Najt"] = t;
 
 // Field Ops
 t = { class=CLASS.FIELDOPS, weapon=0, profile="" };
