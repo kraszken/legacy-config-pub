@@ -41,7 +41,7 @@ AxisBots["Monty"] = t;
 AxisBots["Bean"] = t;
 AxisBots["Sean"] = t;
 AxisBots["Backfire"] = t;
-AxisBots["Halfwit"] = t;
+AxisBots["JorGuś"] = t;
 
 // Field Ops
 t = { class=CLASS.FIELDOPS, weapon=0, profile="" };
@@ -56,7 +56,7 @@ AxisBots["Fullthrottle"] = t;
 // Medics
 t = { class=CLASS.MEDIC, weapon=0, profile="" };
 AxisBots["giehate"] = t;
-AxisBots["Bullseye"] = t;
+AxisBots["Rzydaff"] = t;
 AxisBots["Aimless"] = t;
 AxisBots["Blackadder"] = t;
 AxisBots["Newbie"] = t;
@@ -78,7 +78,7 @@ AxisBots["Drago"] = t;
 
 // Covert Ops
 t = { class=CLASS.COVERTOPS, weapon=0, profile="" };
-AlliedBots["Wens"] = t;
+AlliedBots["sraken"] = t;
 AlliedBots["Brohn"] = t;
 AlliedBots["Ivor"] = t;
 AlliedBots["Gordac"] = t;
@@ -97,9 +97,8 @@ AlliedBots["Najt"] = t;
 // Field Ops
 t = { class=CLASS.FIELDOPS, weapon=0, profile="" };
 AlliedBots["WóT"] = t;
-AlliedBots["Caitlyn"] = t;
-AlliedBots["Adolf"] = t;
-AlliedBots["brAhi"] = t;
+AlliedBots["muuhau"] = t;
+AlliedBots["siusiAk"] = t;
 AlliedBots["Argo"] = t;
 AlliedBots["Milius"] = t;
 AlliedBots["Vera"] = t;
