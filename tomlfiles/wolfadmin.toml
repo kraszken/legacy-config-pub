@@ -24,8 +24,8 @@ chat = "chat.log"
 admin = "admin.log"
 
 [omnibot]
-minbots = 3
-maxbots = 4
+minbots = 5
+maxbots = 6
 
 [admin]
 history = 1
@@ -45,7 +45,7 @@ timeout = 0
 restricted = []
 
 [banners]
-file = ""
+file = "banners.toml"
 interval = 120
 random = 1
 area = 3
