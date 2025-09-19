@@ -20,10 +20,4 @@ rule     = "^7Do ^1NOT ^9use ^7map bugs^9/^7exploits^9!"
 
 [[rule]]
 shortcut = "pudi"
-rule     = "To receive the base reward, you need to get 10 kills – this will give you 30 rolls and 1k pudicoins. After that, each kill above this base amount grants an additional 1.6 rolls and 80 pudicoins. The maximum you can earn from kills in a single match is 70 rolls and 3k pudicoins.
-Additionally, there are two extra rewards:
-1. The top fragger on the map gets an extra 5 rolls and 750 pudicoins.
-2.The player with the top damage on the map also gets 5 rolls and 750 pudicoins.
-
-Kills and damage are only counted on human players.
-Objectives are turned off, and each map lasts for 15 minutes."
+rule     = "To receive the base reward, you need to get 10 kills – this will give you 30 rolls and 1k pudicoins. After that, each kill above this base amount grants an additional 1.6 rolls and 80 pudicoins. The maximum you can earn from kills in a single match is 70 rolls and 3k pudicoins. Additionally, there are two extra rewards:The top fragger on the map gets an extra 5 rolls and 750 pudicoins.The player with the top damage on the map also gets 5 rolls and 750 pudicoins. Kills and damage are only counted on human players."
