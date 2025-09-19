@@ -45,7 +45,7 @@ timeout = 0
 restricted = []
 
 [banners]
-file = "banners.toml"
+file = "tomfiles/banners.toml"
 interval = 120
 random = 1
 area = 3
